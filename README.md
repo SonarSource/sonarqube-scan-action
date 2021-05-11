@@ -1,0 +1,1 @@
+# sonarqube-scan-action
