@@ -1,0 +1,17 @@
+name: SonarQube Scan
+description: >
+  Scan your code with SonarQube to detect Bugs, Vulnerabilities and Code Smells in more than 27 programming languages!
+branding:
+  icon: check
+  color: green
+runs:
+  using: docker
+  image: Dockerfile
+inputs:
+  args:
+    description: Additional arguments to the sonar-scanner
+    required: false
+  projectBaseDir:
+    description: Set the sonar.projectBaseDir analysis property
+    required: false
+    default: .
