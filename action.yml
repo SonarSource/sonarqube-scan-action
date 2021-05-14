@@ -1,6 +1,6 @@
 name: SonarQube Scan
 description: >
-  Scan your code with SonarQube to detect Bugs, Vulnerabilities and Code Smells in more than 27 programming languages!
+  Scan your code with SonarQube to detect Bugs, Vulnerabilities and Code Smells in up to 27 programming languages!
 branding:
   icon: check
   color: green
