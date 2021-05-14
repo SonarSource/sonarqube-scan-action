@@ -7,13 +7,13 @@ success() { echo -e "\\e[32m✔ $*\\e[0m"; }
 
 # Helper function to check if SonarQube is up and running.
 check_sq_is_up() {
-  local status="$(curl --silent --user admin:admin http://127.0.0.1:9000/api/system/status)"
-  local result="$(jq -r '.status' <<< "$status")"
+  local statusCall="$(curl --silent --user admin:admin http://127.0.0.1:9000/api/system/status)"
+  local status="$(jq -r '.status' <<< "$statusCall")"
   if [[ ! $? -eq 0 ]]; then
     error "Failed to check if SonarQube is up and running."
     exit 1
   fi
-  echo $result;
+  echo $status;
 }
 
 info "Build scanner action..."
@@ -56,9 +56,7 @@ docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $ne
 if [[ ! $? -eq 0 ]]; then
   error "Couldn't run the analysis."
   exit 1
-fi
-
-if [[ ! -f ".scannerwork/report-task.txt" ]]; then
+elif [[ ! -f ".scannerwork/report-task.txt" ]]; then
   error "Couldn't find the report task file. Analysis failed."
   exit 1
 fi
