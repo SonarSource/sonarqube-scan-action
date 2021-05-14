@@ -1,4 +1,4 @@
-# Scan your code with SonarQube
+# Scan your code with SonarQube [![QA](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml)
 
 Using this GitHub Action, scan your code with [SonarQube](https://www.sonarqube.org/) to detects Bugs, Vulnerabilities and Code Smells in more than 27 programming languages!
 
