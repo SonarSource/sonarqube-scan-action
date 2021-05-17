@@ -73,7 +73,7 @@ In case you need to add additional analysis parameters, you can use the `args` o
       -Dsonar.verbose=true
 ```
 
-More information about possible analysis parameters can be found in [the documentation](https://docs.sonarqube.org/latest/analysis/analysis-parameters/).
+More information about possible analysis parameters can be found in [the documentation](https://redirect.sonarsource.com/doc/analysis-parameters.html).
 
 ### Environment variables
 
