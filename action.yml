@@ -1,4 +1,4 @@
-name: SonarQube Scan
+name: Official SonarQube Scan
 description: >
   Scan your code with SonarQube to detect Bugs, Vulnerabilities and Code Smells in up to 27 programming languages!
 branding:
