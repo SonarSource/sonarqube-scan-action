@@ -50,6 +50,42 @@ if [[ -z "$token" ]]; then
 fi
 success "New token generated."
 
+info "Test fail-fast if SONAR_TOKEN is omitted..."
+docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network sonarsource/sonarqube-scan-action
+if [[ $? -eq 0 ]]; then
+  error "Should have failed fast."
+  exit 1
+fi
+success "Correctly failed fast."
+
+info "Test fail-fast if SONAR_HOST_URL is omitted..."
+docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env SONAR_TOKEN=$token sonarsource/sonarqube-scan-action
+if [[ $? -eq 0 ]]; then
+  error "Should have failed fast."
+  exit 1
+fi
+success "Correctly failed fast."
+
+info "Test fail-fast on Gradle project..."
+pushd test/gradle-project/
+docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env SONAR_TOKEN=$token --env SONAR_HOST_URL='http://sonarqube:9000' sonarsource/sonarqube-scan-action
+if [[ $? -eq 0 ]]; then
+  error "Should have failed fast."
+  exit 1
+fi
+popd
+success "Correctly failed fast."
+
+info "Test fail-fast on Maven project..."
+pushd test/maven-project/
+docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env SONAR_TOKEN=$token --env SONAR_HOST_URL='http://sonarqube:9000' sonarsource/sonarqube-scan-action
+if [[ $? -eq 0 ]]; then
+  error "Should have failed fast."
+  exit 1
+fi
+popd
+success "Correctly failed fast."
+
 info "Analyze project..."
 cd test/example-project/
 docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env SONAR_TOKEN=$token --env SONAR_HOST_URL='http://sonarqube:9000' sonarsource/sonarqube-scan-action
