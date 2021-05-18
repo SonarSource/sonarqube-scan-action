@@ -73,16 +73,12 @@ In case you need to add additional analysis parameters, you can use the `args` o
       -Dsonar.verbose=true
 ```
 
-More information about possible analysis parameters can be found in [the documentation](https://docs.sonarqube.org/latest/analysis/analysis-parameters/).
+More information about possible analysis parameters can be found in [the documentation](https://redirect.sonarsource.com/doc/analysis-parameters.html).
 
 ### Environment variables
 
 - `SONAR_TOKEN` – **Required** this is the token used to authenticate access to SonarQube. You can read more about security tokens [here](https://docs.sonarqube.org/latest/user-guide/user-token/). You should set the `SONAR_TOKEN` environment variable in the "Secrets" settings page of your repository.
 - `SONAR_HOST_URL` – **Required** this tells the scanner where SonarQube is hosted. You can set the `SONAR_HOST_URL` environment variable in the "Secrets" settings page of your repository.
-
-## Example of pull request analysis
-
-<img src="./images/SonarQube-analysis-in-Checks.png">
 
 ## Do not use this GitHub action if you are in the following situations
 
