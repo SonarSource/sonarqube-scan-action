@@ -59,7 +59,7 @@ You can change the analysis base directory by using the optional input `projectB
     projectBaseDir: app/src
 ```
 
-In case you need to add additional analysis parameters, you can use the `args` option:
+In case you need to add additional analysis parameters, and you do not wish to set them in the `sonar-project.properties` file, you can use the `args` option:
 
 ```yaml
 - name: SonarQube Scan
