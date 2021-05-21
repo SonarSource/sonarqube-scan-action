@@ -8,7 +8,7 @@ SonarQube is the leading product for Continuous Code Quality & Code Security. It
 
 ## Requirements
 
-The repository to analyze is set up on SonarQube.
+To run an analysis on your code, you first need to set up your project on SonarQube. Your SonarQube instance must be accessible from GitHub, and you will need an access token to run the analysis (more information below under **Environment variables**).
 
 ## Usage
 
@@ -22,7 +22,7 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow, usually declared in `.github/workflows/build.yml`, looks like:
+The workflow YAML file will usually look something like this:
 
 ```yaml
 on:
@@ -33,6 +33,7 @@ on:
       - master
   pull_request:
       types: [opened, synchronize, reopened]
+
 name: Main Workflow
 jobs:
   sonarqube:
@@ -52,23 +53,21 @@ jobs:
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
 
 ```yaml
-uses: sonarsource/sonarqube-scan-action@master
-with:
-  projectBaseDir: app/src
+- name: SonarQube Scan
+  uses: sonarsource/sonarqube-scan-action@master
+  with:
+    projectBaseDir: app/src
 ```
 
-In case you need to add additional analysis parameters, you can use the `args` option:
+In case you need to add additional analysis parameters, and you do not wish to set them in the `sonar-project.properties` file, you can use the `args` option:
 
 ```yaml
-- name: Analyze with SonarQube
+- name: SonarQube Scan
   uses: sonarsource/sonarqube-scan-action@master
   with:
     projectBaseDir: app/src
     args: >
-      -Dsonar.projectKey=my-projectkey
       -Dsonar.python.coverage.reportPaths=coverage.xml
-      -Dsonar.sources=lib/
-      -Dsonar.test.exclusions=tests/**
       -Dsonar.tests=tests/
       -Dsonar.verbose=true
 ```
@@ -77,10 +76,12 @@ More information about possible analysis parameters can be found in [the documen
 
 ### Environment variables
 
-- `SONAR_TOKEN` – **Required** this is the token used to authenticate access to SonarQube. You can read more about security tokens [here](https://docs.sonarqube.org/latest/user-guide/user-token/). You should set the `SONAR_TOKEN` environment variable in the "Secrets" settings page of your repository.
-- `SONAR_HOST_URL` – **Required** this tells the scanner where SonarQube is hosted. You can set the `SONAR_HOST_URL` environment variable in the "Secrets" settings page of your repository.
+- `SONAR_TOKEN` – **Required** this is the token used to authenticate access to SonarQube. You can read more about security tokens [here](https://docs.sonarqube.org/latest/user-guide/user-token/). You can set the `SONAR_TOKEN` environment variable in the "Secrets" settings page of your repository, or you can add them at the level of your GitHub organization (recommended).
+- `SONAR_HOST_URL` – **Required** this tells the scanner where SonarQube is hosted. You can set the `SONAR_HOST_URL` environment variable in the "Secrets" settings page of your repository, or you can add them at the level of your GitHub organization (recommended).
 
-## Do not use this GitHub action if you are in the following situations
+## Alternatives for Java, .NET, and C/C++ projects
+
+This GitHub Action will not work for all technologies. If you are in one of the following situations, you should use the following alternatives:
 
 * Your code is built with Maven. Read the documentation about our [Scanner for Maven](https://redirect.sonarsource.com/doc/install-configure-scanner-maven.html).
 * Your code is built with Gradle. Read the documentation about our [Scanner for Gradle](https://redirect.sonarsource.com/doc/gradle.html).
