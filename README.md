@@ -22,7 +22,7 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow file usually looks something like this::
+The workflow YAML file will usually look something like this:
 
 ```yaml
 on:
