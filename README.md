@@ -53,7 +53,7 @@ jobs:
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
 
 ```yaml
-- name: Analyze with SonarQube
+- name: SonarQube Scan
   uses: sonarsource/sonarqube-scan-action@master
   with:
     projectBaseDir: app/src
@@ -62,7 +62,7 @@ You can change the analysis base directory by using the optional input `projectB
 In case you need to add additional analysis parameters, you can use the `args` option:
 
 ```yaml
-- name: Analyze with SonarQube
+- name: SonarQube Scan
   uses: sonarsource/sonarqube-scan-action@master
   with:
     projectBaseDir: app/src
