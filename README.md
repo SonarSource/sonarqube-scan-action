@@ -8,7 +8,7 @@ SonarQube is the leading product for Continuous Code Quality & Code Security. It
 
 ## Requirements
 
-To run an analysis on your code, you need first to set up your project on SonarQube. Your SonarQube instance must be accessible from GitHub, and you will need an access token to run the analysis.
+To run an analysis on your code, you first need to set up your project on SonarQube. Your SonarQube instance must be accessible from GitHub, and you will need an access token to run the analysis (more information below under **Environment variables**).
 
 ## Usage
 
