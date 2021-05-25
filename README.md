@@ -10,6 +10,8 @@ SonarQube is the leading product for Continuous Code Quality & Code Security. It
 
 To run an analysis on your code, you first need to set up your project on SonarQube. Your SonarQube instance must be accessible from GitHub, and you will need an access token to run the analysis (more information below under **Environment variables**).
 
+Read more information on how to analyze your code [here](https://docs.sonarqube.org/latest/analysis/github-integration/).
+
 ## Usage
 
 Project metadata, including the location to the sources to be analyzed, must be declared in the file `sonar-project.properties` in the base directory:
