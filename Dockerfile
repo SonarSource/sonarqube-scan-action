@@ -9,9 +9,6 @@ LABEL version="1.0.0" \
       com.github.actions.icon="check" \
       com.github.actions.color="green"
 
-# Set up local envs in order to allow for special chars (non-asci) in filenames.
-ENV LC_ALL="C.UTF-8"
-
 # https://help.github.com/en/actions/creating-actions/dockerfile-support-for-github-actions#user
 USER root
 
