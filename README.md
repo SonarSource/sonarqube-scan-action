@@ -52,6 +52,17 @@ jobs:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 ```
 
+If your source code file names contain special characters that are not covered by the locale range of `en_US.UTF-8`, you can configure your desired locale like this:
+
+```yaml
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        LC_ALL: "ru_RU.UTF-8"
+```
+
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
 
 ```yaml
