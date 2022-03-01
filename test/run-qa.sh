@@ -16,6 +16,8 @@ check_sq_is_up() {
   echo $status;
 }
 
+_current_perm=$(stat -c "%u:%g" $(pwd))
+
 info "Build scanner action..."
 docker build --no-cache -t sonarsource/sonarqube-scan-action .
 if [[ ! $? -eq 0 ]]; then
@@ -88,12 +90,17 @@ success "Correctly failed fast."
 
 info "Analyze project..."
 cd test/example-project/
-docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env SONAR_TOKEN=$token --env SONAR_HOST_URL='http://sonarqube:9000' sonarsource/sonarqube-scan-action
+docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env INPUT_PROJECTBASEDIR=/github/workspace --env SONAR_TOKEN=$token --env SONAR_HOST_URL='http://sonarqube:9000' sonarsource/sonarqube-scan-action
 if [[ ! $? -eq 0 ]]; then
   error "Couldn't run the analysis."
   exit 1
 elif [[ ! -f ".scannerwork/report-task.txt" ]]; then
   error "Couldn't find the report task file. Analysis failed."
+  exit 1
+elif [ ! "$(stat -c "%u:%g" ".scannerwork/report-task.txt")" == "$_current_perm" ]; then
+  error "File permissions differ from desired once"
+  error "desired: $_current_perm"
+  error "actual: $(stat -c "%u:%g" ".scannerwork/report-task.txt")"
   exit 1
 fi
 success "Analysis successful."
