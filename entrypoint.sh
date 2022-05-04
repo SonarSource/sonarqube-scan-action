@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+# Finish the script and reset .scannerwork perms even if scan fails
+set +e
 
 if [[ -z "${SONAR_TOKEN}" ]]; then
   echo "============================ WARNING ============================"
