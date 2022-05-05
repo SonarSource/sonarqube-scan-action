@@ -9,6 +9,9 @@ LABEL version="1.1.0" \
       com.github.actions.icon="check" \
       com.github.actions.color="green"
 
+# Add certificate in java keystore
+COPY wildcard_corp_ingenio_com.pem .
+RUN keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file wildcard_corp_ingenio_com.pem
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
