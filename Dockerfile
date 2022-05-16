@@ -9,9 +9,19 @@ LABEL version="1.1.0" \
 	com.github.actions.icon="check" \
 	com.github.actions.color="green"
 
-# Add certificate in java keystore
+# Add Ingenio certificate to java keystore
 COPY wildcard_corp_ingenio_com.pem .
 RUN keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file wildcard_corp_ingenio_com.pem
+
+# Update repository sources
+RUN apk update
+
+# Install Python 3
+RUN apk add python3 \
+    py3-pip
+
+# Install Ansible linter
+RUN pip3 install ansible-lint
 
 # Install PowerShell
 # https://docs.microsoft.com/en-us/powershell/scripting/install/install-alpine?view=powershell-7.2#installation-steps
