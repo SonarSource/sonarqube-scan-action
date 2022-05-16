@@ -40,7 +40,7 @@ RUN wget -O powershell.tar.gz https://github.com/PowerShell/PowerShell/releases/
 	ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
 
 # Install PSScriptAnalyzer
-RUN /usr/bin/pwsh -Command { Set-PSRepository PSGallery -InstallationPolicy Trusted -Verbose\; Install-Module PSScriptAnalyzer -Verbose -ErrorAction Stop }
+RUN /usr/bin/pwsh -Command { Set-PSRepository PSGallery -InstallationPolicy Trusted -Verbose\; Install-Module PSScriptAnalyzer -Repository PSGallery -Scope AllUsers -Verbose }
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
