@@ -15,7 +15,7 @@ RUN keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt 
 
 # Install PowerShell
 # https://docs.microsoft.com/en-us/powershell/scripting/install/install-alpine?view=powershell-7.2#installation-steps
-RUN sudo apk add --no-cache \
+RUN apk add --no-cache \
     ca-certificates \
     less \
     ncurses-terminfo-base \
@@ -29,13 +29,13 @@ RUN sudo apk add --no-cache \
     zlib \
     icu-libs \
     curl; \
-RUN sudo apk -X https://dl-cdn.alpinelinux.org/alpine/edge/main add --no-cache \
+RUN apk -X https://dl-cdn.alpinelinux.org/alpine/edge/main add --no-cache \
     lttng-ust
 RUN wget -O powershell.tar.gz -fSL https://github.com/PowerShell/PowerShell/releases/download/v7.2.3/powershell-7.2.3-linux-alpine-x64.tar.gz; \
-	sudo mkdir -p /opt/microsoft/powershell/7; \
-	sudo tar zxf ./powershell.tar.gz -C /opt/microsoft/powershell/7; \
-	sudo chmod +x /opt/microsoft/powershell/7/pwsh; \
-	sudo ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
+	mkdir -p /opt/microsoft/powershell/7; \
+	tar zxf ./powershell.tar.gz -C /opt/microsoft/powershell/7; \
+	chmod +x /opt/microsoft/powershell/7/pwsh; \
+	ln -s /opt/microsoft/powershell/7/pwsh /usr/bin/pwsh
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
