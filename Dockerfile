@@ -28,7 +28,7 @@ RUN apk add --no-cache \
     userspace-rcu \
     zlib \
     icu-libs \
-    curl \
+    curl
 
 RUN apk -X https://dl-cdn.alpinelinux.org/alpine/edge/main add --no-cache \
     lttng-ust
