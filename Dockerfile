@@ -17,7 +17,8 @@ RUN keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt 
 RUN apk update
 
 # Install Python 3
-RUN apk add build-base \
+RUN apk add --no-cache \
+    build-base \
     python3 \
     py3-pip
 
