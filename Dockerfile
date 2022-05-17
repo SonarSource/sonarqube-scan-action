@@ -21,6 +21,8 @@ RUN apk add build-base \
     python3 \
     py3-pip
 
+RUN python3 -m pip install --upgrade pip
+
 # Install Ansible linter
 RUN pip3 install ansible-lint
 
