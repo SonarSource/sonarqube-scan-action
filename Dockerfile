@@ -24,7 +24,7 @@ RUN apk add build-base \
 RUN python3 -m pip install --upgrade pip
 
 # Install Ansible linter
-RUN pip3 install ansible-lint
+#RUN pip3 install ansible-lint
 
 # Install PowerShell
 # https://docs.microsoft.com/en-us/powershell/scripting/install/install-alpine?view=powershell-7.2#installation-steps
