@@ -1,6 +1,6 @@
 name: QA
 
-on: push
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   run_qa:
