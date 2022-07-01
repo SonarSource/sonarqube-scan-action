@@ -25,6 +25,12 @@ fi
 
 unset JAVA_HOME
 
+if [[ "${RUN_JEST}" == "true" ]]; then
+  npm install -g jest-cli jest-sonar-reporter
+  yarn add jest jest-environment-jsdom
+  yarn test --coverage --coverageDirectory='coverage'
+fi
+
 sonar-scanner -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
 
 _tmp_file=$(ls "${INPUT_PROJECTBASEDIR}/" | head -1)
