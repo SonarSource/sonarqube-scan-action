@@ -91,6 +91,7 @@ success "Correctly failed fast."
 info "Analyze project..."
 cd test/example-project/
 docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env INPUT_PROJECTBASEDIR=/github/workspace --env SONAR_TOKEN=$token --env SONAR_HOST_URL='http://sonarqube:9000' sonarsource/sonarqube-scan-action
+docker run -v `pwd`:/github/workspace/ --workdir /github/workspace --network $network --env INPUT_PROJECTBASEDIR=/github/workspace --entrypoint /cleanup.sh sonarsource/sonarqube-scan-action
 if [[ ! $? -eq 0 ]]; then
   error "Couldn't run the analysis."
   exit 1
