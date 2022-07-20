@@ -79,5 +79,6 @@ RUN apk add --no-cache \
 COPY entrypoint.sh /entrypoint.sh
 RUN dos2unix /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
+COPY cleanup.sh /cleanup.sh
+RUN chmod +x /cleanup.sh
 ENTRYPOINT ["/entrypoint.sh"]
