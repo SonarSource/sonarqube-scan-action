@@ -71,7 +71,7 @@ If your sonarqube server users a self-signed certificate, you can pass a root ce
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        SONAR_ROOT_CERT: %{{ secrets.SONAR_ROOT_CERT }}
+        SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
 ```
 
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
