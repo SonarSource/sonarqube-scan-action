@@ -63,7 +63,7 @@ If your source code file names contain special characters that are not covered b
         LC_ALL: "ru_RU.UTF-8"
 ```
 
-If your SonarQube server users a self-signed certificate, you can pass a root certificate (in PEM format) to use for validation to the java certificate store:
+If your SonarQube server uses a self-signed certificate, you can pass a root certificate (in PEM format) to the java certificate store:
 
 ```yaml
     - name: SonarQube Scan
