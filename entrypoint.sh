@@ -13,6 +13,13 @@ if [[ -z "${SONAR_HOST_URL}" ]]; then
   exit 1
 fi
 
+if [[ -n "${SONAR_ROOT_CERT}" ]]; then
+  echo "Adding custom root certificate to java certificate store"
+  rm -f /tmp/tmpcert.pem
+  echo "${SONAR_ROOT_CERT}" > /tmp/tmpcert.pem
+  keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/tmpcert.pem
+fi
+
 if [[ -f "${INPUT_PROJECTBASEDIR%/}pom.xml" ]]; then
   echo "Maven project detected. You should run the goal 'org.sonarsource.scanner.maven:sonar' during build rather than using this GitHub Action."
   exit 1
