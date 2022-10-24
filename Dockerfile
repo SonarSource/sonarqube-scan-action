@@ -1,7 +1,3 @@
-# HACK: Fix for "Error relocating /usr/bin/node: _ZSt28__throw_bad_array_new_lengthv: symbol not found" - https://github.com/nodejs/node/issues/41058#issuecomment-997348999
-FROM alpine:3.16 as libstdc-donor
-RUN apk add --update --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/edge/main libstdc++
-
 FROM sonarsource/sonar-scanner-cli:4.7
 
 LABEL version="1.1.0" \
@@ -30,10 +26,6 @@ RUN apk add --update --no-cache --repository https://dl-cdn.alpinelinux.org/alpi
 RUN apk upgrade --no-cache --repository https://dl-cdn.alpinelinux.org/alpine/edge/main \
     nodejs \
     npm
-
-# HACK: Fix for "Error relocating /usr/bin/node: _ZSt28__throw_bad_array_new_lengthv: symbol not found" - https://github.com/nodejs/node/issues/41058#issuecomment-997348999
-COPY --from=libstdc-donor /usr/lib/libstdc++.so.6.0.29 /usr/lib/libstdc++.so.6.0.29
-RUN rm /usr/lib/libstdc++.so.6 && ln -s /usr/lib/libstdc++.so.6.0.29 /usr/lib/libstdc++.so.6
 
 # Install yarn
 RUN apk add --update --no-cache \
