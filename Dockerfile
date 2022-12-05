@@ -1,4 +1,4 @@
-FROM sonarsource/sonar-scanner-cli:4.7
+FROM fr-maif-ingdev/forge-pipeline/sonar-runner:1.0.0
 
 LABEL version="1.1.0" \
       repository="https://github.com/sonarsource/sonarqube-scan-action" \
