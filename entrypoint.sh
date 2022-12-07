@@ -33,6 +33,6 @@ fi
 unset JAVA_HOME
 
 echo "ICI ===> ${INPUT_ARGS}"
-export SONAR_SCANNER_OPTS="-Xss128m -Xms2048m -Xmx4096m"
+export SONAR_SCANNER_OPTS="-Xss128m -Xms1024m -Xmx2048m"
 sonar-scanner -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
 
