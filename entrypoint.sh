@@ -32,5 +32,6 @@ fi
 
 unset JAVA_HOME
 
+echo "ICI ===> ${INPUT_ARGS}"
 sonar-scanner -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
 
