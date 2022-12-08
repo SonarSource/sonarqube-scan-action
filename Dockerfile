@@ -9,6 +9,7 @@ LABEL version="1.1.0" \
       com.github.actions.icon="check" \
       com.github.actions.color="green"
 
+ENV NODE_OPTIONS '--max-old-space-size=7224'
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
