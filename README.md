@@ -28,11 +28,13 @@ The workflow YAML file will usually look something like this:
 
 ```yaml
 on:
-  # Trigger analysis when pushing in master or pull requests, and when creating
-  # a pull request. 
+  # Trigger analysis when pushing to your main branches, and when creating a pull request.
   push:
     branches:
+      - main
       - master
+      - develop
+      - 'releases/**'
   pull_request:
       types: [opened, synchronize, reopened]
 
