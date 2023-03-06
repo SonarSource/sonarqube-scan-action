@@ -15,3 +15,6 @@ RUN chmod +x /entrypoint.sh
 COPY cleanup.sh /cleanup.sh
 RUN chmod +x /cleanup.sh
 ENTRYPOINT ["/entrypoint.sh"]
+
+COPY flutter /bin/flutter
+RUN chmod +x /bin/flutter
