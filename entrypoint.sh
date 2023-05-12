@@ -15,14 +15,10 @@ fi
 
 if [[ -n "${SONAR_ROOT_CERT}" ]]; then
   echo "Adding custom root certificate to java certificate store"
-  #rm -f /tmp/tmpcert.pem
-  #echo "${SONAR_ROOT_CERT}" > /tmp/tmpcert.pem
+  rm -f /tmp/tmpcert.pem
+  echo "${SONAR_ROOT_CERT}" > /tmp/tmpcert.pem
   #keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/tmpcert.pem
-  
-  rm -f /tmp/CA_MAIF_ROOTCA.pem
-  echo "${SONAR_ROOT_CERT}" > /tmp/CA_MAIF_ROOTCA.pem
-  keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/CA_MAIF_ROOTCA.pem
-  keytool -J-Duser.language=en -noprompt -trustcacerts -keystore /usr/local/openjdk-17/lib/security/cacerts -storepass  changeit -alias CA_MAIF_ROOTCA_TEST -import -file /tmp/CA_MAIF_ROOTCA.pem
+  keytool -J-Duser.language=en -noprompt -trustcacerts -keystore /usr/local/openjdk-17/lib/security/cacerts -storepass  changeit -alias sonarqube -import -file /tmp/tmpcert.pem
 fi
 
 if [[ -f "${INPUT_PROJECTBASEDIR%/}pom.xml" ]]; then
