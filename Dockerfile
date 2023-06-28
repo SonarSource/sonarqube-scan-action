@@ -1,6 +1,4 @@
-#FROM fr-maif-ingdev/forge-pipeline/sonar-runner:1.0.0
-#FROM fr-maif-ingdev/forge-pipeline/sonar-runner:11.14.0-SNAPSHOT
-FROM fr-maif-ingdev/forge-pipeline/sonar-runner:17.18.1-SNAPSHOT
+FROM fr-maif-ingdev/forge-pipeline/sonar-runner:17.18.1
 
 LABEL version="1.1.0" \
       repository="https://github.com/sonarsource/sonarqube-scan-action" \
