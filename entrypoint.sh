@@ -32,5 +32,5 @@ fi
 
 unset JAVA_HOME
 
-sonar-scanner -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
+sonar-scanner -Dsonar.projectBaseDir="${INPUT_PROJECTBASEDIR}" ${INPUT_ARGS}
 
