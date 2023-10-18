@@ -1,10 +1,10 @@
 # Scan your code with SonarQube [![QA](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml)
 
-Using this GitHub Action, scan your code with [SonarQube](https://www.sonarqube.org/) to detects Bugs, Vulnerabilities and Code Smells in up to 27 programming languages!
+Using this GitHub Action, achieve [Clean Code](https://www.sonarsource.com/solutions/clean-code/?utm_medium=referral&utm_source=github&utm_campaign=clean-code&utm_content=sonarqube-scan-action) with [SonarQube](https://www.sonarqube.org/) by scanning to detect Bugs, Vulnerabilities, and Code Smells in 30+ programming languages!
 
 <img src="./images/SonarQube-72px.png">
 
-SonarQube is the leading product for Continuous Code Quality & Code Security. It supports most popular programming languages, including Java, JavaScript, TypeScript, C#, Python, C, C++, and many more.
+SonarQube is the leading product for Continuous Code Quality and code Security. It supports most popular programming languages, including Java, JavaScript, TypeScript, C#, Python, C, C++, and many more.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ Project metadata, including the location to the sources to be analyzed, must be 
 sonar.projectKey=<replace with the key generated when setting up the project on SonarQube>
 
 # relative paths to source directories. More details and properties are described
-# in https://docs.sonarqube.org/latest/project-administration/narrowing-the-focus/ 
+# at https://docs.sonarqube.org/latest/project-administration/narrowing-the-focus/ 
 sonar.sources=.
 ```
 
@@ -45,7 +45,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        # Disabling shallow clone is recommended for improving relevancy of reporting
+        # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@master
@@ -65,7 +65,7 @@ If your source code file names contain special characters that are not covered b
         LC_ALL: "ru_RU.UTF-8"
 ```
 
-If your SonarQube server uses a self-signed certificate, you can pass a root certificate (in PEM format) to the java certificate store:
+If your SonarQube server uses a self-signed certificate, you can pass a root certificate (in PEM format) to the Java certificate store:
 
 ```yaml
     - name: SonarQube Scan
@@ -115,7 +115,7 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 * You want to analyze a .NET solution. Read the documentation about our [Scanner for .NET](https://redirect.sonarsource.com/doc/install-configure-scanner-msbuild.html).
 * You want to analyze C/C++ code. Read the documentation on [analyzing C/C++ code](https://docs.sonarqube.org/latest/analysis/languages/cfamily/).
 
-## Have question or feedback?
+## Have questions or feedback?
 
 To provide feedback (requesting a feature or reporting a bug) please post on the [SonarSource Community Forum](https://community.sonarsource.com/tags/c/help/sq/github-actions).
 
@@ -123,4 +123,4 @@ To provide feedback (requesting a feature or reporting a bug) please post on the
 
 The Dockerfile and associated scripts and documentation in this project are released under the LGPLv3 License.
 
-Container images built with this project include third party materials.
+Container images built with this project include third-party materials.
