@@ -1,4 +1,4 @@
-FROM fr-maif-ingdev/forge-pipeline/sonar-runner:17.18.1
+FROM fr-maif-ingdev/forge-pipeline/sonar-runner:17.18.2
 
 LABEL version="1.1.0" \
       repository="https://github.com/sonarsource/sonarqube-scan-action" \
