@@ -8,32 +8,32 @@ runs:
   using: "composite"
   steps:
     - id: setup1
-    uses: docker
-    image: Dockerfile
-    entrypoint: "/entrypoint.sh"
-    post-entrypoint: "/cleanup.sh"
-    continue-on-error: true
-  - id: setup2
-    if: steps.setup1.outcome == 'failure'
-    uses: docker
-    image: Dockerfile
-    entrypoint: "/entrypoint.sh"
-    post-entrypoint: "/cleanup.sh"
-    continue-on-error: true
-  - id: setup3
-    if: steps.setup2.outcome == 'failure'
-    uses: docker
-    image: Dockerfile
-    entrypoint: "/entrypoint.sh"
-    post-entrypoint: "/cleanup.sh"
-    continue-on-error: true
-  - id: setup4
-    if: steps.setup3.outcome == 'failure'
-    uses: docker
-    image: Dockerfile
-    entrypoint: "/entrypoint.sh"
-    post-entrypoint: "/cleanup.sh"
-    continue-on-error: true
+      uses: docker
+      image: Dockerfile
+      entrypoint: "/entrypoint.sh"
+      post-entrypoint: "/cleanup.sh"
+      continue-on-error: true
+    - id: setup2
+      if: steps.setup1.outcome == 'failure'
+      uses: docker
+      image: Dockerfile
+      entrypoint: "/entrypoint.sh"
+      post-entrypoint: "/cleanup.sh"
+      continue-on-error: true
+    - id: setup3
+      if: steps.setup2.outcome == 'failure'
+      uses: docker
+      image: Dockerfile
+      entrypoint: "/entrypoint.sh"
+      post-entrypoint: "/cleanup.sh"
+      continue-on-error: true
+    - id: setup4
+      if: steps.setup3.outcome == 'failure'
+      uses: docker
+      image: Dockerfile
+      entrypoint: "/entrypoint.sh"
+      post-entrypoint: "/cleanup.sh"
+      continue-on-error: true
 inputs:
   args:
     description: Additional arguments to the sonar-scanner
