@@ -9,6 +9,8 @@ runs:
   image: Dockerfile
   entrypoint: "/entrypoint.sh"
   post-entrypoint: "/cleanup.sh"
+  args:
+    - ${{ inputs.baseImage }}
 inputs:
   args:
     description: Additional arguments to the sonar-scanner
@@ -17,3 +19,6 @@ inputs:
     description: Set the sonar.projectBaseDir analysis property
     required: false
     default: .
+  baseImage:
+    description: Allow for a different base image to be used from a private registry to avoid rate limiting.
+    required: false
