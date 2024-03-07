@@ -1,5 +1,5 @@
 ARG INPUT_BASEIMAGE=sonarsource/sonar-scanner-cli:5.0.1
-FROM INPUT_BASEIMAGE
+FROM ${INPUT_BASEIMAGE}
 
 LABEL version="2.0.1" \
       repository="https://github.com/sonarsource/sonarqube-scan-action" \
