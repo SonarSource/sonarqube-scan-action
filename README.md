@@ -43,7 +43,7 @@ jobs:
   sonarqube:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
