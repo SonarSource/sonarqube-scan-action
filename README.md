@@ -1,6 +1,6 @@
 # Scan your code with SonarQube [![QA](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml)
 
-This SonarSource project, available as a GitHub Action, scans your C, C++, and Objective-C projects with SonarQube, and helps developers produce 
+This SonarSource project, available as a GitHub Action, scans your projects with SonarQube, and helps developers produce 
 [Clean Code](https://www.sonarsource.com/solutions/clean-code/?utm_medium=referral&utm_source=github&utm_campaign=clean-code&utm_content=sonarqube-scan-action).
 
 <img src="./images/SonarQube-72px.png">
