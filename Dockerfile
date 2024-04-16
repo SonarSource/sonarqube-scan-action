@@ -11,4 +11,5 @@ LABEL version="2.0.1" \
 
 COPY --chmod=755 entrypoint.sh /entrypoint.sh
 COPY --chmod=755 cleanup.sh /cleanup.sh
+USER root
 ENTRYPOINT ["/entrypoint.sh"]
