@@ -9,9 +9,6 @@ LABEL version="2.0.1" \
       com.github.actions.icon="check" \
       com.github.actions.color="green"
 
-
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-COPY cleanup.sh /cleanup.sh
-RUN chmod +x /cleanup.sh
+COPY --chmod=755 entrypoint.sh /entrypoint.sh
+COPY --chmod=755 cleanup.sh /cleanup.sh
 ENTRYPOINT ["/entrypoint.sh"]
