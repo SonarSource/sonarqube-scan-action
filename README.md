@@ -116,7 +116,7 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 * Your code is built with Maven. Read the documentation about our [Scanner for Maven](https://redirect.sonarsource.com/doc/install-configure-scanner-maven.html).
 * Your code is built with Gradle. Read the documentation about our [Scanner for Gradle](https://redirect.sonarsource.com/doc/gradle.html).
 * You want to analyze a .NET solution. Read the documentation about our [Scanner for .NET](https://redirect.sonarsource.com/doc/install-configure-scanner-msbuild.html).
-* You want to analyze C/C++ code. Read the documentation on [analyzing C/C++ code](https://docs.sonarqube.org/latest/analysis/languages/cfamily/).
+* You want to analyze C/C++ code. Use the [SonarQube C and C++](https://github.com/SonarSource/sonarqube-github-c-cpp) GitHub Action.
 
 ## Have questions or feedback?
 
