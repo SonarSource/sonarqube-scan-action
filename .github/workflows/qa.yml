@@ -3,16 +3,129 @@ name: QA
 on: [push, pull_request]
 
 jobs:
-  run_qa:
+  argsInputTest:
+    name: >
+      'args' input
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./test/run-qa.sh
-        timeout-minutes: 5
+      - name: Run action with args
+        uses: ./
+        with:
+          args: -Dsonar.someArg=aValue -Dsonar.scanner.dumpToFile=./output.properties
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
+  projectBaseDirInputTest:
+    name: >
+      'projectBaseDir' input
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: mkdir -p ./baseDir
+      - name: Run action with projectBaseDir
+        uses: ./
+        with:
+          args: -Dsonar.scanner.dumpToFile=./output.properties
+          projectBaseDir: ./baseDir
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.projectBaseDir=.*/baseDir"
+  sonarHostUrlRequiredTest:
+    name: >
+      'SONAR_HOST_URL' is required
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action without SONAR_HOST_URL
+        id: runTest
+        uses: ./
+        continue-on-error: true
+      - name: Previous should have failed
+        if: ${{ steps.runTest.outcome == 'success'}}
+        run: |
+          echo "Expected previous step to fail"
+          exit 1
+  failFastGradleTest:
+    name: >
+      Fail fast on Gradle project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on Gradle project
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+        with:
+          projectBaseDir: ./test/gradle-project
+      - name: Previous should have failed
+        if: ${{ steps.runTest.outcome == 'success'}}
+        run: |
+          echo "Expected previous step to fail"
+          exit 1
+  failFastMavenTest:
+    name: >
+      Fail fast on Maven project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on Maven project
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+        with:
+          projectBaseDir: ./test/maven-project
+      - name: Previous should have failed
+        if: ${{ steps.runTest.outcome == 'success'}}
+        run: |
+          echo "Expected previous step to fail"
+          exit 1
+  runAnalysisTest:
+    runs-on: ubuntu-latest
     services:
       sonarqube:
-        image: sonarqube:8.9-community
+        image: sonarqube:lts-community
         ports:
           - 9000:9000
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_logs:/opt/sonarqube/logs
+          - sonarqube_extensions:/opt/sonarqube/extensions
+        options: >-
+          --health-cmd "grep -Fq \"SonarQube is operational\" /opt/sonarqube/logs/sonar.log"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on sample project
+        id: runTest
+        uses: ./
+        env:
+          SONAR_HOST_URL: http://sonarqube:9000
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt
