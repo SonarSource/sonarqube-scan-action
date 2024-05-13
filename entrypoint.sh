@@ -20,12 +20,12 @@ if [[ -n "${SONAR_ROOT_CERT}" ]]; then
   keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/tmpcert.pem
 fi
 
-if [[ -f "${INPUT_PROJECTBASEDIR%/}pom.xml" ]]; then
+if [[ -f "${INPUT_PROJECTBASEDIR%/}/pom.xml" ]]; then
   echo "Maven project detected. You should run the goal 'org.sonarsource.scanner.maven:sonar' during build rather than using this GitHub Action."
   exit 1
 fi
 
-if [[ -f "${INPUT_PROJECTBASEDIR%/}build.gradle" ]]; then
+if [[ -f "${INPUT_PROJECTBASEDIR%/}/build.gradle" ]]; then
   echo "Gradle project detected. You should use the SonarQube plugin for Gradle during build rather than using this GitHub Action."
   exit 1
 fi
