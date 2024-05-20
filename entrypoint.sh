@@ -21,13 +21,13 @@ if [[ -n "${SONAR_ROOT_CERT}" ]]; then
 fi
 
 if [[ -f "${INPUT_PROJECTBASEDIR%/}/pom.xml" ]]; then
-  echo "Maven project detected. You should run the goal 'org.sonarsource.scanner.maven:sonar' during build rather than using this GitHub Action."
-  exit 1
+  echo "WARNING! Maven project detected. Sonar recommends running the 'org.sonarsource.scanner.maven:sonar-maven-plugin:sonar' goal during the build process instead of using this GitHub Action
+  to get more accurate results."
 fi
 
 if [[ -f "${INPUT_PROJECTBASEDIR%/}/build.gradle" ]]; then
-  echo "Gradle project detected. You should use the SonarQube plugin for Gradle during build rather than using this GitHub Action."
-  exit 1
+  echo "WARNING! Gradle project detected. Sonar recommends using the SonarQube plugin for Gradle during the build process instead of using this GitHub Action
+  to get more accurate results."
 fi
 
 unset JAVA_HOME

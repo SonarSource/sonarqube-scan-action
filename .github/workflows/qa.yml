@@ -61,9 +61,9 @@ jobs:
         run: |
           echo "Expected previous step to fail"
           exit 1
-  failFastGradleTest:
+  dontFailGradleTest:
     name: >
-      Fail fast on Gradle project
+      Don't fail on Gradle project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,14 +77,13 @@ jobs:
           SONAR_HOST_URL: http://not_actually_used
         with:
           projectBaseDir: ./test/gradle-project
-      - name: Previous should have failed
-        if: ${{ steps.runTest.outcome == 'success'}}
+          args: -Dsonar.scanner.dumpToFile=./output.properties
+      - name: Assert
         run: |
-          echo "Expected previous step to fail"
-          exit 1
-  failFastMavenTest:
+          ./test/assertFileExists ./output.properties
+  dontFailMavenTest:
     name: >
-      Fail fast on Maven project
+      Don't fail on Maven project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,11 +97,10 @@ jobs:
           SONAR_HOST_URL: http://not_actually_used
         with:
           projectBaseDir: ./test/maven-project
-      - name: Previous should have failed
-        if: ${{ steps.runTest.outcome == 'success'}}
+          args: -Dsonar.scanner.dumpToFile=./output.properties
+      - name: Assert
         run: |
-          echo "Expected previous step to fail"
-          exit 1
+          ./test/assertFileExists ./output.properties
   runAnalysisTest:
     runs-on: ubuntu-latest
     services:
