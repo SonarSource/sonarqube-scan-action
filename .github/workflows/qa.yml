@@ -134,3 +134,21 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt
+  runnerDebugUsedTest:
+    name: >
+      'RUNNER_DEBUG' is used
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with debug mode
+        uses: ./
+        with:
+          args: -Dsonar.scanner.dumpToFile=./output.properties
+        env:
+          RUNNER_DEBUG: 1
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.verbose=true"
