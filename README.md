@@ -17,7 +17,7 @@ Read more information on how to analyze your code [here](https://docs.sonarqube.
 
 ## Usage
 
-Project metadata, including the location to the sources to be analyzed, must be declared in the file `sonar-project.properties` in the base directory:
+Project metadata, including the location of the sources to be analyzed, must be declared in the file `sonar-project.properties` in the base directory:
 
 ```properties
 sonar.projectKey=<replace with the key generated when setting up the project on SonarQube>
@@ -51,7 +51,7 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
+      uses: sonarsource/sonarqube-scan-action@v2.0.2
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -61,7 +61,7 @@ If your source code file names contain special characters that are not covered b
 
 ```yaml
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
+      uses: sonarsource/sonarqube-scan-action@v2.0.2
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -72,7 +72,7 @@ If your SonarQube server uses a self-signed certificate, you can pass a root cer
 
 ```yaml
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
+      uses: sonarsource/sonarqube-scan-action@v2.0.2
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -83,7 +83,7 @@ You can change the analysis base directory by using the optional input `projectB
 
 ```yaml
 - name: SonarQube Scan
-  uses: sonarsource/sonarqube-scan-action@master
+  uses: sonarsource/sonarqube-scan-action@v2.0.2
   with:
     projectBaseDir: app/src
 ```
@@ -92,7 +92,7 @@ In case you need to add additional analysis parameters, and you do not wish to s
 
 ```yaml
 - name: SonarQube Scan
-  uses: sonarsource/sonarqube-scan-action@master
+  uses: sonarsource/sonarqube-scan-action@v2.0.2
   with:
     projectBaseDir: app/src
     args: >
