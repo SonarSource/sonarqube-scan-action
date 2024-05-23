@@ -118,6 +118,19 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 * You want to analyze a .NET solution. Read the documentation about our [Scanner for .NET](https://redirect.sonarsource.com/doc/install-configure-scanner-msbuild.html).
 * You want to analyze C/C++ code. Use the [SonarQube C and C++](https://github.com/SonarSource/sonarqube-github-c-cpp) GitHub Action.
 
+## Error cleaning up workspace
+
+In some cases, the checkout action may fail to clean up the workspace. This is a known problem for GitHub actions implemented as a docker container (such as `sonarqube-scan-action`) when self-hosted runners are used.
+Example of the error message: `File was unable to be removed Error: EACCES: permission denied, unlink '/actions-runner/_work//project/.scannerwork/.sonar_lock'`
+To work around the problem, `sonarqube-scan-action` attempts to fix the permission of the temporary files that it creates. If that doesn't work, you can manually clean up the workspace by running the following action:
+```
+- name: Clean the workspace
+  uses: docker://alpine
+  with:
+    args: /bin/sh -c "find \"${GITHUB_WORKSPACE}\" -mindepth 1 ! -name . -prune -exec rm -rf {} +"
+```
+You can find more info [here](https://github.com/actions/runner/issues/434).
+
 ## Have questions or feedback?
 
 To provide feedback (requesting a feature or reporting a bug) please post on the [SonarSource Community Forum](https://community.sonarsource.com/tags/c/help/sq/github-actions).
