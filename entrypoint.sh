@@ -8,11 +8,6 @@ if [[ -z "${SONAR_TOKEN}" ]]; then
   echo "============================ WARNING ============================"
 fi
 
-if [[ -z "${SONAR_HOST_URL}" ]]; then
-  echo "This GitHub Action requires the SONAR_HOST_URL env variable."
-  exit 1
-fi
-
 if [[ -n "${SONAR_ROOT_CERT}" ]]; then
   echo "Adding custom root certificate to java certificate store"
   rm -f /tmp/tmpcert.pem
