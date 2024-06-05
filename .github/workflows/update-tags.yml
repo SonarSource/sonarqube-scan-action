@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Parse semver
-        uses: madhead/semver-utils@40bbdc6e50b258c09f35f574e83c51f60d2ce3a2 # v4.0.0
+        uses: madhead/semver-utils@v4
         id: version
         with:
           version: ${{ github.ref_name }}
@@ -24,7 +24,7 @@ jobs:
       - name: Update tags
         run: |
           TAGS='v${{ steps.version.outputs.major }} v${{ steps.version.outputs.major }}.${{ steps.version.outputs.minor }}'
-          
+
           for t in $TAGS; do
             git tag -f "$t"
             git push origin ":$t" 2>/dev/null || true
