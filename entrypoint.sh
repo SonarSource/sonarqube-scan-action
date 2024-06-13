@@ -32,6 +32,5 @@ fi
 
 unset JAVA_HOME
 
-eval "args=(${INPUT_ARGS})"
-sonar-scanner $debug_flag "-Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR}" "${args[@]}"
+sonar-scanner $debug_flag -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
 
