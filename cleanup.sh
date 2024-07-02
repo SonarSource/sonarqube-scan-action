@@ -2,12 +2,12 @@
 
 set -e
 
-if [ ! -d "${INPUT_PROJECTBASEDIR%/}/.scannerwork" ]; then
-    echo ".scannerwork directory not found; nothing to clean up."
-    exit
-fi
+# Reset all files permissions to the default Runner user and group to allow the follow up steps (mainly cache) to access all files.
 
+# Assume that the first (non-hidden) file in the project directory is one from the project, and not one written by the scanner
 _tmp_file=$(ls "${INPUT_PROJECTBASEDIR%/}/" | head -1)
+echo "Reading permissions from $_tmp_file"
 PERM=$(stat -c "%u:%g" "${INPUT_PROJECTBASEDIR%/}/$_tmp_file")
 
-chown -R $PERM "${INPUT_PROJECTBASEDIR%/}/.scannerwork/"
+echo "Applying permissions $PERM to all files in the project base directory"
+chown -R $PERM "${INPUT_PROJECTBASEDIR%/}/"

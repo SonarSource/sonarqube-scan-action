@@ -153,3 +153,40 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileContains ./output.properties "sonar.verbose=true"
+  runAnalysisWithCacheTest:
+    runs-on: ubuntu-latest
+    services:
+      sonarqube:
+        image: sonarqube:lts-community
+        ports:
+          - 9000:9000
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_logs:/opt/sonarqube/logs
+          - sonarqube_extensions:/opt/sonarqube/extensions
+        options: >-
+          --health-cmd "grep -Fq \"SonarQube is operational\" /opt/sonarqube/logs/sonar.log"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: SonarQube Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.sonar/cache
+          key: ${{ runner.os }}-sonar
+      - name: Run action on sample project
+        id: runTest
+        uses: ./
+        env:
+          SONAR_HOST_URL: http://sonarqube:9000
+          SONAR_USER_HOME: ${{ github.workspace }}/.sonar
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt
