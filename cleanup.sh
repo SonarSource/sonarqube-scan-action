@@ -10,4 +10,4 @@ echo "Reading permissions from $_tmp_file"
 PERM=$(stat -c "%u:%g" "${INPUT_PROJECTBASEDIR%/}/$_tmp_file")
 
 echo "Applying permissions $PERM to all files in the project base directory"
-chown -R $PERM "${INPUT_PROJECTBASEDIR%/}/"
+chown -R "$PERM" "${INPUT_PROJECTBASEDIR%/}/"
