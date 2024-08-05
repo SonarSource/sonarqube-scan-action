@@ -1,4 +1,4 @@
-FROM 526321083813.dkr.ecr.ap-southeast-1.amazonaws.com/sonar-scanner-cli:10.0
+FROM docker-voila.catalyst.internal:5000/sonar-scanner-cli:10.0
 
 LABEL version="2.1.0" \
       repository="https://github.com/machtwatch/sonarqube-scan-action" \
