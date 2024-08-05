@@ -1,4 +1,4 @@
-FROM 491248485740.dkr.ecr.ap-southeast-1.amazonaws.com/sonar-scanner-cli:10.0
+FROM 526321083813.dkr.ecr.ap-southeast-1.amazonaws.com/sonar-scanner-cli:10.0
 
 LABEL version="2.1.0" \
       repository="https://github.com/machtwatch/sonarqube-scan-action" \
