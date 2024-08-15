@@ -8,11 +8,19 @@ if [[ -z "${SONAR_TOKEN}" ]]; then
   echo "============================ WARNING ============================"
 fi
 
+trust_store_pass_param=''
 if [[ -n "${SONAR_ROOT_CERT}" ]]; then
-  echo "Adding custom root certificate to java certificate store"
+  echo "Adding custom certificate"
+
+  trust_store_pass="changeit"
+  trust_store_pass_param="-Dsonar.scanner.truststorePassword=${trust_store_pass}"
+
   rm -f /tmp/tmpcert.pem
   echo "${SONAR_ROOT_CERT}" > /tmp/tmpcert.pem
-  keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/tmpcert.pem
+
+  rm -f /opt/sonar-scanner/.sonar/ssl/truststore.p12
+  mkdir -p /opt/sonar-scanner/.sonar/ssl
+  openssl pkcs12 -export -nokeys -in /tmp/tmpcert.pem -out /opt/sonar-scanner/.sonar/ssl/truststore.p12 --passout pass:${trust_store_pass}
 fi
 
 if [[ -f "${INPUT_PROJECTBASEDIR%/}/pom.xml" ]]; then
@@ -32,5 +40,5 @@ fi
 
 unset JAVA_HOME
 
-sonar-scanner $debug_flag -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
+sonar-scanner $debug_flag $trust_store_pass_param -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
 
