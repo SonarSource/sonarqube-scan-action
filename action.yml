@@ -4,11 +4,6 @@ description: >
 branding:
   icon: check
   color: green
-runs:
-  using: docker
-  image: Dockerfile
-  entrypoint: "/entrypoint.sh"
-  post-entrypoint: "/cleanup.sh"
 inputs:
   args:
     description: Additional arguments to the sonar-scanner
@@ -16,4 +11,35 @@ inputs:
   projectBaseDir:
     description: Set the sonar.projectBaseDir analysis property
     required: false
-    default: .
+  scannerVersion:
+    description: Version of the Sonar Scanner CLI to use
+    required: false
+    default: 6.2.0.4584
+runs:
+  using: "composite"
+  steps:
+    - name: Sanity checks
+      run: ${GITHUB_ACTION_PATH}/sanity-checks.sh
+      shell: bash
+      env:
+        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
+    - name: Load Sonar Scanner CLI from cache
+      id: sonar-scanner-cli
+      uses: actions/cache@v4.0.2
+      with:
+        path: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
+        key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
+    - name: Install Sonar Scanner CLI
+      if: steps.sonar-scanner-cli.outputs.cache-hit != 'true'
+      run: ${GITHUB_ACTION_PATH}/install-sonar-scanner-cli.sh
+      shell: bash
+      env:
+          INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
+    - name: Add SonarScanner CLI to the PATH
+      run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
+      shell: bash
+    - name: Run SonarScanner
+      run: ${GITHUB_ACTION_PATH}/run-sonar-scanner.sh ${{ inputs.args }}
+      shell: bash
+      env:
+        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}

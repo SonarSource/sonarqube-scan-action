@@ -11,7 +11,10 @@ jobs:
   argsInputTest:
     name: >
       'args' input
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,7 +22,7 @@ jobs:
       - name: Run action with args
         uses: ./
         with:
-          args: -Dsonar.someArg=aValue -Dsonar.scanner.dumpToFile=./output.properties
+          args: -Dsonar.someArg=aValue -Dsonar.scanner.internal.dumpToFile=./output.properties
         env:
           SONAR_HOST_URL: http://not_actually_used
       - name: Assert
@@ -28,7 +31,10 @@ jobs:
   projectBaseDirInputTest:
     name: >
       'projectBaseDir' input
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,7 +43,7 @@ jobs:
       - name: Run action with projectBaseDir
         uses: ./
         with:
-          args: -Dsonar.scanner.dumpToFile=./output.properties
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
           projectBaseDir: ./baseDir
         env:
           SONAR_HOST_URL: http://not_actually_used
@@ -60,7 +66,7 @@ jobs:
           SONAR_HOST_URL: http://not_actually_used
         with:
           projectBaseDir: ./test/gradle-project
-          args: -Dsonar.scanner.dumpToFile=./output.properties
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
@@ -80,7 +86,7 @@ jobs:
           SONAR_HOST_URL: http://not_actually_used
         with:
           projectBaseDir: ./test/gradle-project
-          args: -Dsonar.scanner.dumpToFile=./output.properties
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
@@ -100,7 +106,7 @@ jobs:
           SONAR_HOST_URL: http://not_actually_used
         with:
           projectBaseDir: ./test/maven-project
-          args: -Dsonar.scanner.dumpToFile=./output.properties
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
@@ -128,7 +134,7 @@ jobs:
         id: runTest
         uses: ./
         env:
-          SONAR_HOST_URL: http://sonarqube:9000
+          SONAR_HOST_URL: http://localhost:9000
         with:
           args: -Dsonar.login=admin -Dsonar.password=admin
           projectBaseDir: ./test/example-project
@@ -138,7 +144,10 @@ jobs:
   runnerDebugUsedTest:
     name: >
       'RUNNER_DEBUG' is used
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -146,13 +155,67 @@ jobs:
       - name: Run action with debug mode
         uses: ./
         with:
-          args: -Dsonar.scanner.dumpToFile=./output.properties
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
         env:
           RUNNER_DEBUG: 1
           SONAR_HOST_URL: http://not_actually_used
       - name: Assert
         run: |
           ./test/assertFileContains ./output.properties "sonar.verbose=true"
+  useSslCertificate:
+    name: >
+      'SONAR_ROOT_CERT' is converted to truststore
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with SSL certificate
+        uses: ./
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            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
+            Fct6d1S08JAosVnZcP2P7Yz+TbmDRtsqCgk=
+            -----END CERTIFICATE-----
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert
+        run: |
+          ./test/assertFileExists ~/.sonar/ssl/truststore.p12
   runAnalysisWithCacheTest:
     runs-on: ubuntu-latest
     services:
@@ -177,12 +240,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.sonar/cache
-          key: ${{ runner.os }}-sonar
+          key: ${{ runner.os }}-${{ runner.arch }}-sonar
       - name: Run action on sample project
         id: runTest
         uses: ./
         env:
-          SONAR_HOST_URL: http://sonarqube:9000
+          SONAR_HOST_URL: http://localhost:9000
           SONAR_USER_HOME: ${{ github.workspace }}/.sonar
         with:
           args: -Dsonar.login=admin -Dsonar.password=admin
