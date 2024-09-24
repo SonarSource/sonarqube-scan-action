@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -e
+set -eo pipefail
+
+declare -a args=()
 
 if [[ -z "${SONAR_TOKEN}" ]]; then
   echo "============================ WARNING ============================"
@@ -9,10 +11,15 @@ if [[ -z "${SONAR_TOKEN}" ]]; then
 fi
 
 if [[ -n "${SONAR_ROOT_CERT}" ]]; then
-  echo "Adding custom root certificate to java certificate store"
+  echo "Adding custom root certificate to the scanner truststore"
   rm -f /tmp/tmpcert.pem
   echo "${SONAR_ROOT_CERT}" > /tmp/tmpcert.pem
-  keytool -keystore /etc/ssl/certs/java/cacerts -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/tmpcert.pem
+  # we can't use the default "sonar" password as keytool requires a password with at least 6 characters
+  args+=("-Dsonar.scanner.truststorePassword=changeit")
+  mkdir -p $SONAR_USER_HOME/ssl
+  keytool -storetype PKCS12 -keystore $SONAR_USER_HOME/ssl/truststore.p12 -storepass changeit -noprompt -trustcacerts -importcert -alias sonarqube -file /tmp/tmpcert.pem
+  # for older SQ versions < 10.6
+  export SONAR_SCANNER_OPTS="${SONAR_SCANNER_OPTS:-} -Djavax.net.ssl.trustStore=$SONAR_USER_HOME/ssl/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit"
 fi
 
 if [[ -f "${INPUT_PROJECTBASEDIR%/}/pom.xml" ]]; then
@@ -25,12 +32,14 @@ if [[ -f "${INPUT_PROJECTBASEDIR%/}/build.gradle"  || -f "${INPUT_PROJECTBASEDIR
   to get more accurate results."
 fi
 
-debug_flag=''
+
 if [[ "$RUNNER_DEBUG" == '1' ]]; then
-  debug_flag='--debug'
+  args+=("--debug")
 fi
 
 unset JAVA_HOME
 
-sonar-scanner $debug_flag -Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR} ${INPUT_ARGS}
+args+=("-Dsonar.projectBaseDir=${INPUT_PROJECTBASEDIR}")
+
+sonar-scanner "${args[@]}" ${INPUT_ARGS}
 

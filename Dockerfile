@@ -1,6 +1,6 @@
-FROM sonarsource/sonar-scanner-cli:10.0
+FROM sonarsource/sonar-scanner-cli:11.1
 
-LABEL version="2.1.0" \
+LABEL version="3.0.0" \
       repository="https://github.com/sonarsource/sonarqube-scan-action" \
       homepage="https://github.com/sonarsource/sonarqube-scan-action" \
       maintainer="SonarSource" \
