@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+echo "::warning title=Docker removed in the next major version::Users on the master branch of this GitHub action will be upgraded automatically on December 9th to its next major version, which replaces Docker with a composite action, executing in the runner environment. Self-hosted runners analyzing JS/TS code against SonarQube 10.2 and below will need to have Node JS installed."
+
 declare -a args=()
 
 if [[ -z "${SONAR_TOKEN}" ]]; then
