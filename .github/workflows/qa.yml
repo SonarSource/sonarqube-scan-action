@@ -27,7 +27,10 @@ jobs:
   argsInputTest:
     name: >
       'args' input
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,7 +38,7 @@ jobs:
       - name: Run action with args
         uses: ./
         with:
-          args: -Dsonar.someArg=aValue
+          args: -Dsonar.someArg=aValue -Dsonar.scanner.internal.dumpToFile=./output.properties
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
@@ -45,7 +48,10 @@ jobs:
   projectBaseDirInputTest:
     name: >
       'projectBaseDir' input
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,6 +60,7 @@ jobs:
       - name: Run action with projectBaseDir
         uses: ./
         with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
           projectBaseDir: ./baseDir
         env:
           SONAR_HOST_URL: http://not_actually_used
@@ -78,6 +85,7 @@ jobs:
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
         with:
           projectBaseDir: ./test/gradle-project
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
@@ -98,6 +106,7 @@ jobs:
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
         with:
           projectBaseDir: ./test/gradle-project
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
@@ -118,6 +127,7 @@ jobs:
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
         with:
           projectBaseDir: ./test/maven-project
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
@@ -145,7 +155,7 @@ jobs:
         id: runTest
         uses: ./
         env:
-          SONAR_HOST_URL: http://sonarqube:9000
+          SONAR_HOST_URL: http://localhost:9000
         with:
           args: -Dsonar.login=admin -Dsonar.password=admin
           projectBaseDir: ./test/example-project
@@ -155,13 +165,18 @@ jobs:
   runnerDebugUsedTest:
     name: >
       'RUNNER_DEBUG' is used
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with debug mode
         uses: ./
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
         env:
           RUNNER_DEBUG: 1
           SONAR_HOST_URL: http://not_actually_used
@@ -193,29 +208,34 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.sonar/cache
-          key: ${{ runner.os }}-sonar
+          key: ${{ runner.os }}-${{ runner.arch }}-sonar
       - name: Run action on sample project
         id: runTest
         uses: ./
         env:
-          SONAR_HOST_URL: http://sonarqube:9000
+          SONAR_HOST_URL: http://localhost:9000
           SONAR_USER_HOME: ${{ github.workspace }}/.sonar
         with:
           args: -Dsonar.login=admin -Dsonar.password=admin
           projectBaseDir: ./test/example-project
       - name: Assert
         run: |
-          ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt
+          ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt        
   useSslCertificate:
     name: >
       'SONAR_ROOT_CERT' is converted to truststore
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SSL certificate
         uses: ./
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
         env:
           SONAR_ROOT_CERT: |
             -----BEGIN CERTIFICATE-----
@@ -252,7 +272,6 @@ jobs:
             Fct6d1S08JAosVnZcP2P7Yz+TbmDRtsqCgk=
             -----END CERTIFICATE-----
           SONAR_HOST_URL: http://not_actually_used
-          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
       - name: Assert
         run: |
-          ./test/assertFileContains ./output.properties "sonar.scanner.truststorePassword=changeit"
+          ./test/assertFileExists ~/.sonar/ssl/truststore.p12
