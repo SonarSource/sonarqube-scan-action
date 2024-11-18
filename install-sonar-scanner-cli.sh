@@ -26,7 +26,7 @@ set -x
 mkdir -p $RUNNER_TEMP/sonarscanner
 cd $RUNNER_TEMP/sonarscanner
 
-$WGET --no-verbose --user-agent="sonarqube-scan-action" https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$INPUT_SCANNERVERSION-$FLAVOR.zip
+$WGET --no-verbose --user-agent="sonarqube-scan-action" "${INPUT_SCANNERBINARIESURL%/}/sonar-scanner-cli-$INPUT_SCANNERVERSION-$FLAVOR.zip"
 
 unzip -q sonar-scanner-cli-$INPUT_SCANNERVERSION-$FLAVOR.zip
 
