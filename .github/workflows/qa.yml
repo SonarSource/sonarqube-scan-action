@@ -269,6 +269,60 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt        
+  dontFailOnMissingWget:
+    name: Don't fail on missing wget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget
+        run: sudo apt-get remove -y wget
+      - name: Assert wget is not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action
+        uses: ./
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  failOnMissingCurl:
+    name: Fail on missing curl
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove curl
+        run: sudo apt-get remove -y curl
+      - name: Assert curl is not available
+        run: |
+          if command -v curl 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert failure of previous step
+        if: steps.runTest.outcome == 'success'
+        run: exit 1
   useSslCertificate:
     name: >
       'SONAR_ROOT_CERT' is converted to truststore
