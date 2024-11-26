@@ -23,12 +23,3 @@ openssl genrsa \
     -des3 \
     -out ca.key 4096 \
 
-# Generate Certificate Authority certificate
-openssl req \
-    -passin pass:test42 \
-    -new \
-    -x509 \
-    -days 365 \
-    -key ca.key \
-    -out ca.crt \
-    -subj "/C=CH/ST=Geneva/L=Geneva/O=CertificateAuthority/OU=ExpertDepartment"
