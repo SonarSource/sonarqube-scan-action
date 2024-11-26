@@ -283,13 +283,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Generate certificates
-        run: ./generate-certificates.sh
+      - name: Generate server certificate
+        run: |
+          openssl req \
+            -newkey rsa:4096 \
+            -x509 \
+            -sha256 \
+            -addext "subjectAltName = DNS:localhost" \
+            -days 3650 \
+            -nodes \
+            -out server.crt \
+            -subj "/C=CH/ST=Geneva/L=Geneva/O=Server/OU=Dept" \
+            -keyout server.key
         working-directory: .github/qa-sq-behind-ngix
       - name: Start nginx and SonarQube via Docker Compose
         run: docker compose up -d --wait
         working-directory: .github/qa-sq-behind-ngix
-      - name: Read correct client certificate from 
+      - name: Read correct server certificate 
         run: |
           # read server.crt from .github/qa-sq-behind-ngix/ and store into the SONAR_ROOT_CERT_VALID 
           # environment variable, to be able to read it in the next step
@@ -306,7 +316,7 @@ jobs:
         with:
           args: -Dsonar.login=admin -Dsonar.password=admin
           projectBaseDir: ./test/example-project
-      - name: Clear imported certificates
+      - name: Clear imported SSL certificates
         run: |
           rm -f ~/.sonar/ssl/truststore.p12
       - name: Run action with an invalid SSL certificate
@@ -325,7 +335,7 @@ jobs:
       - name: Assert failure of previous step
         if: steps.invalid_ssl_certificate.outcome == 'success'
         run: exit 1
-      - name: Clear imported certificates
+      - name: Clear imported SSL certificates
         run: |
           rm -f ~/.sonar/ssl/truststore.p12
       - name: Run action with the wrong SSL certificate

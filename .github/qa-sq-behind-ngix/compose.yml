@@ -16,7 +16,6 @@ services:
       - 4443:4443
     volumes:
       - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/nginx.conf:/etc/nginx/nginx.conf:ro
-      - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/ca.crt:/etc/nginx/client_certs/ca.crt:ro
       - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/server.crt:/etc/nginx/server.crt:ro
       - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/server.key:/etc/nginx/server.key:ro
     healthcheck:
