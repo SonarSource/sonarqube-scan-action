@@ -269,8 +269,8 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt        
-  dontFailOnMissingWget:
-    name: Don't fail on missing wget
+  dontFailWhenMissingWgetButCurlAvailable:
+    name: Don't fail when missing wget but curl available
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -295,8 +295,8 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileExists ./output.properties
-  failOnMissingCurl:
-    name: Fail on missing curl
+  dontFailWhenMissingCurlButWgetAvailable:
+    name: Don't fail when missing curl but wget available
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -306,6 +306,37 @@ jobs:
         run: sudo apt-get remove -y curl
       - name: Assert curl is not available
         run: |
+          if command -v curl 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action
+        id: runTest
+        uses: ./
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  failWhenBothWgetAndCurlMissing:
+    name: Fail when both wget and curl are missing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget and curl
+        run: sudo apt-get remove -y wget curl
+      - name: Assert wget and curl are not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
           if command -v curl 2>&1 >/dev/null
           then
             exit 1
