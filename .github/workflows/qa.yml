@@ -116,6 +116,56 @@ jobs:
       - name: Assert Sonar Scanner CLI was not executed
         run: |
           ./test/assertFileDoesntExist ./output.properties
+  scannerBinariesUrlIsEscapedWithWget:
+    name: >
+      'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerBinariesUrl: 'http://some_uri;touch file.txt;'
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
+      - name: Assert file.txt does not exist
+        run: |
+          ./test/assertFileDoesntExist "$RUNNER_TEMP/sonarscanner/file.txt"
+  scannerBinariesUrlIsEscapedWithCurl:
+    name: >
+      'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget
+        run: sudo apt-get remove -y wget
+      - name: Assert wget is not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerBinariesUrl: 'http://some_uri http://another_uri''; touch file.txt;'
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
+      - name: Assert file.txt does not exist
+        run: |
+          ./test/assertFileDoesntExist "$RUNNER_TEMP/sonarscanner/file.txt"
   dontFailGradleTest:
     name: >
       Don't fail on Gradle project
@@ -376,6 +426,37 @@ jobs:
       - name: Assert failure of previous step
         if: steps.runTest.outcome == 'success'
         run: exit 1
+  curlPerformsRedirect:
+    name: >
+      curl performs redirect when scannerBinariesUrl returns 3xx
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget
+        run: sudo apt-get remove -y wget
+      - name: Assert wget is not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Start nginx via Docker Compose
+        run: docker compose up -d --wait
+        working-directory: .github/qa-nginx-redirecting
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        with:
+          scannerBinariesUrl: http://localhost:8080/clientRedirectToSonarBinaries
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
+      - name: Assert Sonar Scanner CLI was downloaded
+        run: |
+          ./test/assertFileExists "$RUNNER_TEMP/sonarscanner/sonar-scanner-cli-6.2.1.4610-linux-x64.zip"
   useSslCertificate:
     name: >
       'SONAR_ROOT_CERT' is converted to truststore
