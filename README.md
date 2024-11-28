@@ -182,10 +182,10 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 
 * Your code is built with Maven. Read the documentation about our SonarScanner for Maven in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-maven/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-maven/).
 * Your code is built with Gradle. Read the documentation about our SonarScanner for Gradle in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-gradle/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-gradle/).
-* You want to analyze a .NET solution. Read the documentation about our SonarScanner for .NET in [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/dotnet/introduction/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-dotnet/introduction/).
+* You want to analyze a .NET solution. Read the documentation about our SonarScanner for .NET in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/dotnet/introduction/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-dotnet/introduction/).
 * You want to analyze C or C++ code. Starting from SonarQube 10.6, this GitHub Action will scan C and C++ out of the box. If you want to have better control over the scan configuration/setup, you can switch to:
   * the [SonarQube Server Scan for C and C++](https://github.com/marketplace/actions/sonarqube-scan-for-c-and-c) GitHub Action, for projects on SonarQube Server
-  * the [SonarQube Cloud Scan for C and C++](https://github.com/marketplace/actions/sonarcloud-scan-for-c-and-c) GitHub Action, for projects on SonarQube Cloud - look at [our sample C and C++ project](https://github.com/sonarsource-cfamily-examples?q=gh-actions-sc&type=all&language=&sort=)
+  * the [SonarQube Cloud Scan for C and C++](https://github.com/marketplace/actions/sonarcloud-scan-for-c-and-c) GitHub Action, for projects on SonarQube Cloud - look at [our sample C and C++ project](https://github.com/sonarsource-cfamily-examples?q=gh-actions-sc&type=all&language=&sort=).
 
 ## Have questions or feedback?
 
