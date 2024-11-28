@@ -270,7 +270,8 @@ jobs:
         run: |
           ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt        
   overrideSonarcloudUrlTest:
-    name: 'SONARCLOUD_URL' is used
+    name: >
+      'SONARCLOUD_URL' is used
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
