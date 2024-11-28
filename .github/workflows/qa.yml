@@ -275,3 +275,111 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileExists ~/.sonar/ssl/truststore.p12
+  analysisWithSslCertificate:
+    name: >
+      Analysis takes into account 'SONAR_ROOT_CERT'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate server certificate
+        run: |
+          openssl req \
+            -newkey rsa:4096 \
+            -x509 \
+            -sha256 \
+            -addext "subjectAltName = DNS:localhost" \
+            -days 3650 \
+            -nodes \
+            -out server.crt \
+            -subj "/C=CH/ST=Geneva/L=Geneva/O=Server/OU=Dept" \
+            -keyout server.key
+        working-directory: .github/qa-sq-behind-ngix
+      - name: Start nginx and SonarQube via Docker Compose
+        run: docker compose up -d --wait
+        working-directory: .github/qa-sq-behind-ngix
+      - name: Read correct server certificate 
+        run: |
+          # read server.crt from .github/qa-sq-behind-ngix/ and store into the SONAR_ROOT_CERT_VALID 
+          # environment variable, to be able to read it in the next step
+          {
+            echo 'SONAR_ROOT_CERT_VALID<<=========='
+            cat .github/qa-sq-behind-ngix/server.crt
+            echo ==========
+          } >> $GITHUB_ENV
+      - name: Run action with the correct SSL certificate
+        uses: ./
+        env:
+          SONAR_ROOT_CERT: ${{ env.SONAR_ROOT_CERT_VALID }}
+          SONAR_HOST_URL: https://localhost:4443
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Clear imported SSL certificates
+        run: |
+          rm -f ~/.sonar/ssl/truststore.p12
+      - name: Run action with an invalid SSL certificate
+        id: invalid_ssl_certificate
+        continue-on-error: true
+        uses: ./
+        env:
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            INVALID
+            -----END CERTIFICATE-----
+          SONAR_HOST_URL: https://localhost:4443
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert failure of previous step
+        if: steps.invalid_ssl_certificate.outcome == 'success'
+        run: exit 1
+      - name: Clear imported SSL certificates
+        run: |
+          rm -f ~/.sonar/ssl/truststore.p12
+      - name: Run action with the wrong SSL certificate
+        id: wrong_ssl_certificate
+        continue-on-error: true
+        uses: ./
+        env:
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            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
+            -----END CERTIFICATE-----
+          SONAR_HOST_URL: https://localhost:4443
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert failure of previous step
+        if: steps.wrong_ssl_certificate.outcome == 'success'
+        run: exit 1
