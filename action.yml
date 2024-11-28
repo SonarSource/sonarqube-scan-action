@@ -1,12 +1,15 @@
-name: Official SonarQube Scan
+name: Official SonarQube (Server, Cloud) Scan
 description: >
-  Scan your code with SonarQube to detect Bugs, Vulnerabilities and Code Smells in up to 27 programming languages!
+  Scan your code with SonarQube Server and Cloud to detect coding 
+  issues in 30+ languages, frameworks, and IaC platforms. 
+  The solution also provides fix recommendations leveraging AI with 
+  Sonar's AI CodeFix capability. (Formerly SonarQube and SonarCloud)
 branding:
   icon: check
   color: green
 inputs:
   args:
-    description: Additional arguments to the sonar-scanner
+    description: Additional arguments to the Sonar Scanner CLI
     required: false
   projectBaseDir:
     description: Set the sonar.projectBaseDir analysis property
