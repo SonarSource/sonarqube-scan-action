@@ -163,7 +163,7 @@ More information about possible analysis parameters can be found:
 - `SONAR_HOST_URL` – this tells the scanner where SonarQube Server is hosted. You can set the `SONAR_HOST_URL` environment variable in the "Variables" settings page of your repository, or you can add them at the level of your GitHub organization (recommended). Not needed for SonarQube Cloud.
 - `SONAR_ROOT_CERT` – Holds an additional root certificate (in PEM format) that is used to validate the certificate of SonarQube Server or of a secured proxy to SonarQube (Server or Cloud). You can set the `SONAR_ROOT_CERT` environment variable in the "Secrets" settings page of your repository, or you can add them at the level of your GitHub organization (recommended).
 
-Here is an example of how you can pass a root certificate (in PEM format) to the Java certificate store:
+Here is an example of how you can pass a certificate (in PEM format) to the Scanner truststore:
 
 ```yaml
 - uses: sonarsource/sonarqube-scan-action@<action version>
