@@ -23,32 +23,28 @@ else
      exit 1
 fi
 
-SCANNER_FILE_NAME="sonar-scanner-cli-$INPUT_SCANNERVERSION-$FLAVOR.zip"
-SCANNER_URI="${INPUT_SCANNERBINARIESURL%/}/$SCANNER_FILE_NAME"
-
-if command -v wget &> /dev/null; then
-    DOWNLOAD_COMMAND="wget"
-    DOWNLOAD_ARGS="--no-verbose --user-agent=sonarqube-scan-action $SCANNER_URI"
-elif command -v curl &> /dev/null; then
-    DOWNLOAD_COMMAND="curl"
-    DOWNLOAD_ARGS="--silent --show-error --user-agent sonarqube-scan-action --output $SCANNER_FILE_NAME $SCANNER_URI"
-elif [ "$RUNNER_OS" == "Windows" ] && [ -t "C:\\msys64\\usr\\bin\\wget.exe" ]; then
-    DOWNLOAD_COMMAND="C:\\msys64\\usr\\bin\\wget.exe"
-    DOWNLOAD_ARGS="--no-verbose --user-agent=sonarqube-scan-action $SCANNER_URI"
-elif [ "$RUNNER_OS" == "Windows" ] && [ -t "C:\\msys64\\usr\\bin\\curl.exe" ]; then
-    DOWNLOAD_COMMAND="C:\\msys64\\usr\\bin\\curl.exe"
-    DOWNLOAD_ARGS="--silent --show-error --user-agent sonarqube-scan-action --output $SCANNER_FILE_NAME $SCANNER_URI"
-else
-    echo "::error title=SonarScanner::Neither wget nor curl found on the machine"
-    exit 1
-fi
-
 set -x
 
 mkdir -p $RUNNER_TEMP/sonarscanner
 cd $RUNNER_TEMP/sonarscanner
 
-$DOWNLOAD_COMMAND $DOWNLOAD_ARGS
+SCANNER_FILE_NAME="sonar-scanner-cli-$INPUT_SCANNERVERSION-$FLAVOR.zip"
+SCANNER_URI="${INPUT_SCANNERBINARIESURL%/}/$SCANNER_FILE_NAME"
+
+if command -v wget &> /dev/null; then
+    wget --no-verbose --user-agent=sonarqube-scan-action "$SCANNER_URI"
+elif command -v curl &> /dev/null; then
+    curl --fail --silent --show-error --user-agent sonarqube-scan-action \
+         --location --output "$SCANNER_FILE_NAME" "$SCANNER_URI"
+elif [ "$RUNNER_OS" == "Windows" ] && [ -t "C:\\msys64\\usr\\bin\\wget.exe" ]; then
+    "C:\\msys64\\usr\\bin\\wget.exe" --no-verbose --user-agent=sonarqube-scan-action "$SCANNER_URI"
+elif [ "$RUNNER_OS" == "Windows" ] && [ -t "C:\\msys64\\usr\\bin\\curl.exe" ]; then
+    "C:\\msys64\\usr\\bin\\curl.exe" --fail --silent --show-error --user-agent sonarqube-scan-action \
+         --location --output "$SCANNER_FILE_NAME" "$SCANNER_URI"
+else
+    echo "::error title=SonarScanner::Neither wget nor curl found on the machine"
+    exit 1
+fi
 
 unzip -q $SCANNER_FILE_NAME
 
