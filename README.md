@@ -106,7 +106,6 @@ jobs:
       uses: sonarsource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: https://sonarcloud.io
 ```
 
 ## Action parameters
@@ -143,6 +142,16 @@ In case you need to add additional analysis parameters, and you do not wish to s
       -Dsonar.verbose=true
 ```
 
+You can also specify the URL where to retrieve the SonarScanner CLI from.
+The specified URL overrides the default address: `https://binaries.sonarsource.com/Distribution/sonar-scanner-cli`.
+This can be useful when the runner executing the action is self-hosted and has regulated or no access to the Internet:
+
+```yaml
+- uses: sonarsource/sonarqube-scan-action@<action version>
+  with:
+    scannerBinariesUrl: https://my.custom.binaries.url.com/Distribution/sonar-scanner-cli/
+```
+
 More information about possible analysis parameters can be found:
 * in the [Analysis parameters page](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/analysis-parameters/) of the SonarQube Server documentation
 * in the [Analysis parameters page](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/analysis-parameters/) of the SonarQube Cloud documentation
@@ -154,7 +163,7 @@ More information about possible analysis parameters can be found:
 - `SONAR_HOST_URL` – this tells the scanner where SonarQube Server is hosted. You can set the `SONAR_HOST_URL` environment variable in the "Variables" settings page of your repository, or you can add them at the level of your GitHub organization (recommended). Not needed for SonarQube Cloud.
 - `SONAR_ROOT_CERT` – Holds an additional root certificate (in PEM format) that is used to validate the certificate of SonarQube Server or of a secured proxy to SonarQube (Server or Cloud). You can set the `SONAR_ROOT_CERT` environment variable in the "Secrets" settings page of your repository, or you can add them at the level of your GitHub organization (recommended).
 
-Here is an example of how you can pass a root certificate (in PEM format) to the Java certificate store, when your SonarQube Server uses a self-signed certificate:
+Here is an example of how you can pass a root certificate (in PEM format) to the Java certificate store:
 
 ```yaml
 - uses: sonarsource/sonarqube-scan-action@<action version>
@@ -187,7 +196,7 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 
 ## Have questions or feedback?
 
-To provide feedback (requesting a feature or reporting a bug) please post on the [SonarSource Community Forum](https://community.sonarsource.com/tags/c/help/sq/github-actions).
+To provide feedback (requesting a feature or reporting a bug) please post on the SonarSource Community Forum page for SonarQube [Server](https://community.sonarsource.com/tags/c/help/sq/github-actions) or [Cloud](https://community.sonarsource.com/tags/c/help/sc/9/github-actions).
 
 ## License
 
