@@ -23,30 +23,15 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Sanity checks
-      run: ${GITHUB_ACTION_PATH}/sanity-checks.sh
-      shell: bash
-      env:
-        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
-    - name: Load Sonar Scanner CLI from cache
-      id: sonar-scanner-cli
-      uses: actions/cache@v4.0.2
+    - uses: ./sanity-checks
       with:
-        path: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
-        key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
-    - name: Install Sonar Scanner CLI
-      if: ${{ env.NO_CACHE == 'true' || steps.sonar-scanner-cli.outputs.cache-hit != 'true' }}
-      run: ${GITHUB_ACTION_PATH}/install-sonar-scanner-cli.sh
-      shell: bash
-      env:
-        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
-        INPUT_SCANNERBINARIESURL: ${{ inputs.scannerBinariesUrl }}
-    - name: Add SonarScanner CLI to the PATH
-      run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
-      shell: bash
-    - name: Run SonarScanner
-      run: ${GITHUB_ACTION_PATH}/run-sonar-scanner.sh ${{ inputs.args }}
-      shell: bash
-      env:
-        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
-        SONAR_SCANNER_JRE: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/jre
+        projectBaseDir: ${{ inputs.projectBaseDir }}
+    - uses: ./install-sonar-scanner
+      with:
+        scannerVersion: ${{ inputs.scannerVersion }}
+        scannerBinariesUrl: ${{ inputs.scannerBinariesUrl }}
+    - uses: ./run-sonar-scanner
+      with:
+        args: ${{ inputs.args }}
+        projectBaseDir: ${{ inputs.projectBaseDir }}
+        scannerVersion: ${{ inputs.scannerVersion }}

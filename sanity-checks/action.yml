@@ -1,0 +1,17 @@
+name: Official SonarQube (Server, Cloud) Scan - Sanity Checks
+description: Runs sanity checks.
+branding:
+  icon: check
+  color: green
+inputs:
+  projectBaseDir:
+    description: Set the sonar.projectBaseDir analysis property
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Sanity checks
+      run: ${GITHUB_ACTION_PATH}/sanity-checks.sh
+      shell: bash
+      env:
+        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}

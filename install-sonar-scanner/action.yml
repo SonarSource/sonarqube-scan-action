@@ -1,0 +1,33 @@
+name: Official SonarQube (Server, Cloud) Scan - Install SonarScanner CLI
+description: Install the Sonar Scanner CLI and add it to the PATH.
+branding:
+  icon: check
+  color: green
+inputs:
+  scannerVersion:
+    description: Version of the Sonar Scanner CLI to use
+    required: false
+    default: 6.2.1.4610
+  scannerBinariesUrl:
+    description: URL to download the Sonar Scanner CLI binaries from
+    required: false
+    default: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
+runs:
+  using: "composite"
+  steps:
+    - name: Load Sonar Scanner CLI from cache
+      id: sonar-scanner-cli
+      uses: actions/cache@v4.0.2
+      with:
+        path: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
+        key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
+    - name: Install Sonar Scanner CLI
+      if: ${{ env.NO_CACHE == 'true' || steps.sonar-scanner-cli.outputs.cache-hit != 'true' }}
+      run: ${GITHUB_ACTION_PATH}/install-sonar-scanner-cli.sh
+      shell: bash
+      env:
+        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
+        INPUT_SCANNERBINARIESURL: ${{ inputs.scannerBinariesUrl }}
+    - name: Add SonarScanner CLI to the PATH
+      run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
+      shell: bash

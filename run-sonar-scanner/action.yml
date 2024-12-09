@@ -1,0 +1,25 @@
+name: Official SonarQube (Server, Cloud) Scan - Run SonarScanner
+description: Run the Sonar Scanner CLI.
+branding:
+  icon: check
+  color: green
+inputs:
+  args:
+    description: Additional arguments to the Sonar Scanner CLI
+    required: false
+  projectBaseDir:
+    description: Set the sonar.projectBaseDir analysis property
+    required: false
+  scannerVersion:
+    description: Version of the Sonar Scanner CLI to use
+    required: false
+    default: 6.2.1.4610
+runs:
+  using: "composite"
+  steps:
+    - name: Run SonarScanner
+      run: ${GITHUB_ACTION_PATH}/run-sonar-scanner.sh ${{ inputs.args }}
+      shell: bash
+      env:
+        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
+        SONAR_SCANNER_JRE: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/jre
