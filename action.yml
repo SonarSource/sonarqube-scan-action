@@ -1,9 +1,7 @@
 name: Official SonarQube (Server, Cloud) Scan
 description: >
-  Scan your code with SonarQube Server and Cloud to detect coding 
-  issues in 30+ languages, frameworks, and IaC platforms. 
-  The solution also provides fix recommendations leveraging AI with 
-  Sonar's AI CodeFix capability. (Formerly SonarQube and SonarCloud)
+  Scan your code with SonarQube Server and Cloud to detect 
+  issues in 30+ languages. (Formerly SonarQube and SonarCloud)
 branding:
   icon: check
   color: green
