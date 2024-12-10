@@ -35,7 +35,12 @@ runs:
         path: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
         key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
     - name: Install Sonar Scanner CLI
-      if: ${{ env.NO_CACHE == 'true' || steps.sonar-scanner-cli.outputs.cache-hit != 'true' }}
+      run: ${GITHUB_ACTION_PATH}/install-sonar-scanner-cli.sh
+      shell: bash
+      env:
+        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
+        INPUT_SCANNERBINARIESURL: ${{ inputs.scannerBinariesUrl }}
+    - name: Install Sonar Scanner CLI
       run: ${GITHUB_ACTION_PATH}/install-sonar-scanner-cli.sh
       shell: bash
       env:
