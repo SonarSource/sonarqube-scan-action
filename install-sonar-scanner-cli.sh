@@ -46,7 +46,7 @@ else
     exit 1
 fi
 
-unzip -q $SCANNER_FILE_NAME
+unzip -q -o $SCANNER_FILE_NAME
 
 # Folder name should correspond to the directory cached by the actions/cache
 mv sonar-scanner-$INPUT_SCANNERVERSION-$FLAVOR $RUNNER_TEMP/sonar-scanner-cli-$INPUT_SCANNERVERSION-$RUNNER_OS-$RUNNER_ARCH
