@@ -1,0 +1,11 @@
+sonar-scanner-version=6.1.0.4477
+sonar-scanner-url-windows-x64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.1.0.4477-windows-x64.zip
+sonar-scanner-sha-windows-x64=1c518fdefd1e6507475f92a0afec3720ceac9a79756773a14b461737dea0ab0f
+sonar-scanner-url-linux-x64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.1.0.4477-linux-x64.zip
+sonar-scanner-sha-linux-x64=aa985eacaa4155a064647370b62fc82d1b0e06caf1d493e04c2389dd5ac74fcb
+sonar-scanner-url-linux-aarch64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.1.0.4477-linux-aarch64.zip
+sonar-scanner-sha-linux-aarch64=a8d4af9776988e096e0d6bddad02d879e6c8c2cdc0c4c1c05e04208cca8d5a05
+sonar-scanner-url-macosx-x64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.1.0.4477-macosx-x64.zip
+sonar-scanner-sha-macosx-x64=7bb3516c8176ec7be43982e0cb78c1ce462741ad9ce092037e12b2fc8411eb85
+sonar-scanner-url-macosx-aarch64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.1.0.4477-macosx-aarch64.zip
+sonar-scanner-sha-macosx-aarch64=7c7e69b6cf54e3a5ff67a08199d557e896f51bcc9b2f8f5f238a5aa359653659

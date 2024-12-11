@@ -11,6 +11,9 @@ It helps developers detect coding issues in 30+ languages, frameworks, and IaC p
 
 The solution also provides fix recommendations leveraging AI with Sonar's AI CodeFix capability.
 
+> [!NOTE]  
+> This action now supports and is the official entrypoint for scanning C, C++, Objective-C and Dart projects via GitHub actions.
+
 ## Requirements
 
 ### Server
@@ -38,7 +41,9 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow, usually declared under `.github/workflows`, looks like:
+The workflow, usually declared under `.github/workflows`, looks like the following:
+- for projects **not** written in C, C++, and Objective-C
+- and for projects written in C, C++, and Objective-C and using [AutoConfig](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/analysis-modes/#choosing-the-right-analysis-mode)
 
 ```yaml
 on:
@@ -67,6 +72,61 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 ```
+
+For C, C++ and Objective-C projects not using AutoConfig, the workflow requires additional steps to download the Build Wrapper and invoking it:
+
+```yaml
+# Trigger analysis when pushing to your main branches, and when creating a pull request.
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'releases/**'
+  pull_request:
+      types: [opened, synchronize, reopened]
+
+name: Main Workflow
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        fetch-depth: 0
+    - name: Install Build Wrapper
+      uses: sonarsource/sonarqube-scan-action/install-build-wrapper@<action version>
+      env:
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    - name: Run Build Wrapper
+      run: |
+        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
+        # build-preparation steps
+        # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@<action version>
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
+      with:  
+        args: |
+          --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+          #Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+```
+
+If you are using SonarQube Server 10.5 or earlier, use `sonar.cfamily.build-wrapper-output` instead of `sonar.cfamily.compile-commands` in the `run` property of the last step, as Build Wrapper does not generate a compile_commands.json file before SonarQube Server 10.6, like this:
+```yaml
+with:  
+  args: |
+    --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+```
+
+See also [example configurations of C++ projects for SonarQube Server](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sq&type=repositories).
 
 ### Cloud
 
@@ -107,6 +167,54 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
+
+For C, C++ and Objective-C projects not using AutoConfig, the workflow requires additional steps to download the Build Wrapper and invoking it:
+
+```yaml
+# Trigger analysis when pushing to your main branches, and when creating a pull request.
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'releases/**'
+  pull_request:
+      types: [opened, synchronize, reopened]
+
+name: Main Workflow
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        fetch-depth: 0
+    - name: Install Build Wrapper
+      uses: sonarsource/sonarqube-scan-action/install-build-wrapper@<action version>
+      env:
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    - name: Run Build Wrapper
+      run: |
+        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
+        # build-preparation steps
+        # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@<action version>
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
+      with:  
+        args: |
+          --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+          #Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+```
+
+See also [example configurations of C++ projects for SonarQube Cloud](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sc&type=repositories).
 
 ## Action parameters
 
@@ -190,9 +298,10 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 * Your code is built with Maven. Read the documentation about our SonarScanner for Maven in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-maven/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-maven/).
 * Your code is built with Gradle. Read the documentation about our SonarScanner for Gradle in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-gradle/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-gradle/).
 * You want to analyze a .NET solution. Read the documentation about our SonarScanner for .NET in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/dotnet/introduction/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-dotnet/introduction/).
-* You want to analyze C or C++ code. Starting from SonarQube 10.6, this GitHub Action will scan C and C++ out of the box. If you want to have better control over the scan configuration/setup, you can switch to:
-  * the [SonarQube Server Scan for C and C++](https://github.com/marketplace/actions/sonarqube-scan-for-c-and-c) GitHub Action, for projects on SonarQube Server
-  * the [SonarQube Cloud Scan for C and C++](https://github.com/marketplace/actions/sonarcloud-scan-for-c-and-c) GitHub Action, for projects on SonarQube Cloud - look at [our sample C and C++ project](https://github.com/sonarsource-cfamily-examples?q=gh-actions-sc&type=all&language=&sort=).
+
+## Do not use this GitHub action if you are in the following situations
+
+* You want to run the action on C, C++, or Objective-C projects on a 32-bits system - build wrappers support only 64-bits OS.
 
 ## Have questions or feedback?
 
