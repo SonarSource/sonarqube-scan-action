@@ -15,7 +15,7 @@ inputs:
   scannerVersion:
     description: Version of the Sonar Scanner CLI to use
     required: false
-    default: 6.2.1.4610
+    default: 6.2.1.4610 # to be kept in sync with sonar-scanner-version
   scannerBinariesUrl:
     description: URL to download the Sonar Scanner CLI binaries from
     required: false
@@ -24,7 +24,7 @@ runs:
   using: "composite"
   steps:
     - name: Sanity checks
-      run: ${GITHUB_ACTION_PATH}/sanity-checks.sh
+      run: ${GITHUB_ACTION_PATH}/scripts/sanity-checks.sh
       shell: bash
       env:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
@@ -36,7 +36,7 @@ runs:
         key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
     - name: Install Sonar Scanner CLI
       if: ${{ env.NO_CACHE == 'true' || steps.sonar-scanner-cli.outputs.cache-hit != 'true' }}
-      run: ${GITHUB_ACTION_PATH}/install-sonar-scanner-cli.sh
+      run: ${GITHUB_ACTION_PATH}/scripts/install-sonar-scanner-cli.sh
       shell: bash
       env:
         INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
@@ -45,7 +45,7 @@ runs:
       run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
       shell: bash
     - name: Run SonarScanner
-      run: ${GITHUB_ACTION_PATH}/run-sonar-scanner.sh ${{ inputs.args }}
+      run: ${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner-cli.sh ${{ inputs.args }}
       shell: bash
       env:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
