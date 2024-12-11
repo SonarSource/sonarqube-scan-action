@@ -108,6 +108,14 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
 
+## Self-hosted runner or container
+
+When running the action in a self-hosted runner or container, please ensure that the following programs are installed:
+
+* **curl** or **wget**
+* **unzip**
+
+
 ## Action parameters
 
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
