@@ -19,6 +19,13 @@ runs:
       shell: bash
       run: brew install coreutils
 
+    - name: Set SONAR_HOST_URL to 'https://sonarcloud.io'
+      if: env.SONAR_HOST_URL == ''
+      shell: bash
+      run: |
+        echo "Setting SONAR_HOST_URL to 'https://sonarcloud.io'"
+        echo "SONAR_HOST_URL=https://sonarcloud.io" >> $GITHUB_ENV
+
     - name: Configure paths
       id: configure_paths
       shell: bash
