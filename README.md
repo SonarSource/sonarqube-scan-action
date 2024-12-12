@@ -41,9 +41,11 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow, usually declared under `.github/workflows`, looks like the following:
-- for projects **not** written in C, C++, and Objective-C
-- and for projects written in C, C++, and Objective-C and using [AutoConfig](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/analysis-modes/#choosing-the-right-analysis-mode)
+In the following cases:
+- for projects that don't have C, C++, or Objective-C in them
+- for C, C++, Objective-C projects that don't use [Build Wrapper](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/prerequisites/#using-buildwrapper)
+
+the workflow, usually declared under `.github/workflows`, looks like the following:
 
 ```yaml
 on:
@@ -73,7 +75,7 @@ jobs:
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 ```
 
-For C, C++ and Objective-C projects not using AutoConfig, the workflow requires additional steps to download the Build Wrapper and invoking it:
+For C, C++, and Objective-C projects relying on [Build Wrapper](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/prerequisites/#using-buildwrapper) to generate the compilation database, the workflow requires additional steps to download the Build Wrapper and invoke it:
 
 ```yaml
 # Trigger analysis when pushing to your main branches, and when creating a pull request.
@@ -118,7 +120,10 @@ jobs:
           #Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
 ```
 
-If you are using SonarQube Server 10.5 or earlier, use `sonar.cfamily.build-wrapper-output` instead of `sonar.cfamily.compile-commands` in the `run` property of the last step, as Build Wrapper does not generate a compile_commands.json file before SonarQube Server 10.6, like this:
+If you are using SonarQube Server 10.5 or earlier, use `sonar.cfamily.build-wrapper-output` instead of `sonar.cfamily.compile-commands` in the `args` property of the last step, as Build Wrapper does not generate a `compile_commands.json` file before SonarQube Server 10.6.
+
+It should look like this:
+
 ```yaml
 with:  
   args: |
@@ -138,7 +143,11 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow, usually declared under `.github/workflows`, looks like:
+In the following cases:
+- for projects that don't have C, C++, or Objective-C in them
+- for C, C++, Objective-C projects that don't use [Build Wrapper](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/languages/c-family/prerequisites/#using-build-wrapper)
+
+the workflow, usually declared under `.github/workflows`, looks like the following:
 
 ```yaml
 on:
@@ -167,7 +176,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
 
-For C, C++ and Objective-C projects not using AutoConfig, the workflow requires additional steps to download the Build Wrapper and invoking it:
+For C, C++, and Objective-C projects relying on [Build Wrapper](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/languages/c-family/prerequisites/#using-build-wrapper) to generate the compilation database, the workflow requires additional steps to download the Build Wrapper and invoke it:
 
 ```yaml
 # Trigger analysis when pushing to your main branches, and when creating a pull request.
