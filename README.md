@@ -69,7 +69,7 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+      uses: SonarSource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
@@ -100,7 +100,7 @@ jobs:
         # Disabling shallow clone is recommended for improving relevancy of reporting
         fetch-depth: 0
     - name: Install Build Wrapper
-      uses: sonarsource/sonarqube-scan-action/install-build-wrapper@<action version>
+      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@<action version>
       env:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     - name: Run Build Wrapper
@@ -109,15 +109,15 @@ jobs:
         # build-preparation steps
         # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@<action version>
+      uses: SonarSource/sonarqube-scan-action@<action version>
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
-      with:  
-        args: |
+      with:
+        # Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+        args: >
           --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
-          #Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
 ```
 
 If you are using SonarQube Server 10.5 or earlier, use `sonar.cfamily.build-wrapper-output` instead of `sonar.cfamily.compile-commands` in the `args` property of the last step, as Build Wrapper does not generate a `compile_commands.json` file before SonarQube Server 10.6.
@@ -126,7 +126,7 @@ It should look like this:
 
 ```yaml
 with:  
-  args: |
+  args: >
     --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 ```
 
@@ -171,7 +171,7 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+      uses: SonarSource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
@@ -201,21 +201,21 @@ jobs:
         # Disabling shallow clone is recommended for improving relevancy of reporting
         fetch-depth: 0
     - name: Install Build Wrapper
-      uses: sonarsource/sonarqube-scan-action/install-build-wrapper@<action version>
+      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@<action version>
     - name: Run Build Wrapper
       run: |
         # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
         # build-preparation steps
         # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@<action version>
+      uses: SonarSource/sonarqube-scan-action@<action version>
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
-      with:  
-        args: |
+      with:
+        # Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+        args: >
           --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
-          #Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
 ```
 
 See also [example configurations of C++ projects for SonarQube Cloud](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sc&type=repositories).
@@ -225,7 +225,7 @@ See also [example configurations of C++ projects for SonarQube Cloud](https://gi
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     projectBaseDir: app/src
 ```
@@ -233,7 +233,7 @@ You can change the analysis base directory by using the optional input `projectB
 In case you need to specify the version of the Sonar Scanner, you can use the `scannerVersion` option:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     scannerVersion: 6.2.0.4584
 ```
@@ -241,7 +241,7 @@ In case you need to specify the version of the Sonar Scanner, you can use the `s
 In case you need to add additional analysis parameters, and you do not wish to set them in the `sonar-project.properties` file, you can use the `args` option:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     projectBaseDir: app/src
     args: >
@@ -259,7 +259,7 @@ The specified URL overrides the default address: `https://binaries.sonarsource.c
 This can be useful when the runner executing the action is self-hosted and has regulated or no access to the Internet:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     scannerBinariesUrl: https://my.custom.binaries.url.com/Distribution/sonar-scanner-cli/
 ```
@@ -277,7 +277,7 @@ More information about possible analysis parameters can be found:
 Here is an example of how you can pass a certificate (in PEM format) to the Scanner truststore:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   env:
     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
@@ -287,7 +287,7 @@ Here is an example of how you can pass a certificate (in PEM format) to the Scan
 If your source code file names contain special characters that are not covered by the locale range of `en_US.UTF-8`, you can configure your desired locale like this:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   env:
     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }} # or https://sonarcloud.io
