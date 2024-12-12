@@ -109,7 +109,6 @@ jobs:
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@<action version>
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
@@ -204,7 +203,6 @@ jobs:
     - name: SonarQube Scan
       uses: sonarsource/sonarqube-scan-action@<action version>
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
