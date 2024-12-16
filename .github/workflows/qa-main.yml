@@ -655,7 +655,7 @@ jobs:
           [ ! -f "$SCANNER_LOCAL_FOLDER/some_content.txt" ] || exit 1
   updateTruststoreWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
-      'SONAR_SSL_FOLDER' is NOT cleaned when present and truststore.p12 is updated
+      truststore.p12 is updated when present
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -714,12 +714,12 @@ jobs:
       - name: Assert not-truststore.p12 file still exists
         run: |
           [ -f "$SONAR_SSL_FOLDER/not-truststore.p12" ] || exit 1
-      - name: Assert truststore.p12 file now exists and take note of modification time  
+      - name: Assert truststore.p12 file now exists and take note of modification time
         run: |
           [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
           # emit the modification time of the truststore.p12 file to be able to read it in the next steps
-          TRUSTSTORE_P12_MOD_TIME_BEFORE=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
-          echo "TRUSTSTORE_P12_MOD_TIME_BEFORE=$TRUSTSTORE_P12_MOD_TIME_BEFORE" >> $GITHUB_ENV
+          TRUSTSTORE_P12_MOD_TIME_T1=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
+          echo "TRUSTSTORE_P12_MOD_TIME_T1=$TRUSTSTORE_P12_MOD_TIME_T1" >> $GITHUB_ENV
       - name: Run action a second time with a different SONAR_ROOT_CERT
         uses: ./
         env:
@@ -744,8 +744,41 @@ jobs:
             -----END CERTIFICATE-----
         with:
           args: -Dsonar.scanner.internal.dumpToFile=./output.properties
-      - name: Assert truststore.p12 still exists, but it has been updated
+      - name: Assert truststore.p12 still exists, but it has been updated, and take note of modification time
         run: |
           [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
-          TRUSTSTORE_P12_MOD_TIME_AFTER=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
-          [ "$TRUSTSTORE_P12_MOD_TIME_BEFORE" != "$TRUSTSTORE_P12_MOD_TIME_AFTER" ] || exit 1
+          TRUSTSTORE_P12_MOD_TIME_T2=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
+          [ "$TRUSTSTORE_P12_MOD_TIME_T1" != "$TRUSTSTORE_P12_MOD_TIME_T2" ] || exit 1
+          # emit the modification time of the truststore.p12 file to be able to read it in the next steps
+          echo "TRUSTSTORE_P12_MOD_TIME_T2=$TRUSTSTORE_P12_MOD_TIME_T2" >> $GITHUB_ENV
+      - name: Remove sonar alias from truststore.p12
+        run: keytool -delete -alias sonar -keystore "$SONAR_SSL_FOLDER/truststore.p12" -storepass changeit
+      - name: Run action a third time
+        uses: ./
+        env:
+          # NO_CACHE not needed, as SONAR_SSL_FOLDER is setup when the Sonar Scanner is run, not installed 
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            MIICgTCCAeoCCQCbOlrWDdX7FTANBgkqhkiG9w0BAQUFADCBhDELMAkGA1UEBhMC
+            Tk8xGDAWBgNVBAgTD0FuZHJlYXMgU29sYmVyZzEMMAoGA1UEBxMDRm9vMRAwDgYD
+            VQQKEwdVTklORVRUMRgwFgYDVQQDEw9mZWlkZS5lcmxhbmcubm8xITAfBgkqhkiG
+            9w0BCQEWEmFuZHJlYXNAdW5pbmV0dC5ubzAeFw0wNzA2MTUxMjAxMzVaFw0wNzA4
+            MTQxMjAxMzVaMIGEMQswCQYDVQQGEwJOTzEYMBYGA1UECBMPQW5kcmVhcyBTb2xi
+            ZXJnMQwwCgYDVQQHEwNGb28xEDAOBgNVBAoTB1VOSU5FVFQxGDAWBgNVBAMTD2Zl
+            aWRlLmVybGFuZy5ubzEhMB8GCSqGSIb3DQEJARYSYW5kcmVhc0B1bmluZXR0Lm5v
+            MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDivbhR7P516x/S3BqKxupQe0LO
+            NoliupiBOesCO3SHbDrl3+q9IbfnfmE04rNuMcPsIxB161TdDpIesLCn7c8aPHIS
+            KOtPlAeTZSnb8QAu7aRjZq3+PbrP5uW3TcfCGPtKTytHOge/OlJbo078dVhXQ14d
+            1EDwXJW1rRXuUt4C8QIDAQABMA0GCSqGSIb3DQEBBQUAA4GBACDVfp86HObqY+e8
+            BUoWQ9+VMQx1ASDohBjwOsg2WykUqRXF+dLfcUH9dWR63CtZIKFDbStNomPnQz7n
+            bK+onygwBspVEbnHuUihZq3ZUdmumQqCw4Uvs/1Uvq3orOo/WJVhTyvLgFVK2Qar
+            Q4/67OZfHd7R+POBXhophSMv1ZOo
+            -----END CERTIFICATE-----
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert truststore.p12 still exists, and it has been updated again
+        run: |
+          [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+          TRUSTSTORE_P12_MOD_TIME_T3=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
+          [ "$TRUSTSTORE_P12_MOD_TIME_T2" != "$TRUSTSTORE_P12_MOD_TIME_T3" ] || exit 1

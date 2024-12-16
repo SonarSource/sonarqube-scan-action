@@ -30,15 +30,30 @@ SONAR_SSL_TRUSTSTORE_FILE="$SONAR_SSL_FOLDER/truststore.p12"
 SONAR_SSL_TRUSTSTORE_PASSWORD=changeit
 
 if [ -f "$SONAR_SSL_TRUSTSTORE_FILE" ]; then
-  echo "::warning title=SonarScanner::Removing 'sonar' alias from already existing Scanner truststore: $SONAR_SSL_TRUSTSTORE_FILE"
+  ALIAS_SONAR_IS_PRESENT=true
+
   "$SONAR_SCANNER_JRE/bin/java" "$KEYTOOL_MAIN_CLASS" \
     -storetype PKCS12 \
     -keystore "$SONAR_SSL_TRUSTSTORE_FILE" \
     -storepass "$SONAR_SSL_TRUSTSTORE_PASSWORD" \
     -noprompt \
     -trustcacerts \
-    -delete \
-    -alias sonar
+    -list -v -alias sonar > /dev/null 2>&1 || {
+      ALIAS_SONAR_IS_PRESENT=false
+      echo "Existing Scanner truststore $SONAR_SSL_TRUSTSTORE_FILE does not contain 'sonar' alias"
+    }
+
+  if [[ $ALIAS_SONAR_IS_PRESENT == "true" ]]; then
+    echo "Removing 'sonar' alias from already existing Scanner truststore: $SONAR_SSL_TRUSTSTORE_FILE"
+    "$SONAR_SCANNER_JRE/bin/java" "$KEYTOOL_MAIN_CLASS" \
+      -storetype PKCS12 \
+      -keystore "$SONAR_SSL_TRUSTSTORE_FILE" \
+      -storepass "$SONAR_SSL_TRUSTSTORE_PASSWORD" \
+      -noprompt \
+      -trustcacerts \
+      -delete \
+      -alias sonar
+  fi
 fi
 
 if [[ -n "${SONAR_ROOT_CERT}" ]]; then
