@@ -1,0 +1,69 @@
+name: QA Install Build Wrapper action
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  output-test:
+    name: Action outputs
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
+        cache: [true, false]
+        include:
+          - arch: X64
+          - os: macos-latest
+            arch: ARM64
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Specifying a specific architecture of the runner is not possible for Github hosted runners
+      # We can only check if the runner architecture matches the expected one
+      - name: check_runner_arch
+        shell: bash
+        run: |
+          echo "Runner architecture: ${{ runner.arch }}"
+          if [[ "${{ runner.arch }}" != "${{ matrix.arch }}" ]]; then
+            echo "##[error]Runner architecture does not match the expected one"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Run SonarQube C/C++ action
+        id: run-action
+        uses: ./install-build-wrapper
+        env:
+          SONAR_HOST_URL: 'https://next.sonarqube.com/sonarqube/'
+
+      # build-wrapper does not have --help or equivalent option.
+      # Pass to few arguments and ignore error code
+      - name: build-wrapper is installed and in PATH on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          (build-wrapper-win-x86-64.exe || true) | grep "build-wrapper, version "
+
+      - name: build-wrapper is installed and in PATH on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          (build-wrapper-linux-x86-64 || true) | grep "build-wrapper, version "
+
+      - name: build-wrapper is installed and in PATH on macOS
+        if: runner.os == 'macOs'
+        shell: bash
+        run: |
+          (build-wrapper-macosx-x86 || true) | grep "build-wrapper, version "
+
+      - name: build-wrapper-binary output is correct
+        shell: bash
+        env:
+          BINARY: ${{ steps.run-action.outputs.build-wrapper-binary }}
+        run: |
+          ("$BINARY" || true) | grep "build-wrapper, version "

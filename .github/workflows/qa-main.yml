@@ -1,4 +1,4 @@
-name: QA
+name: QA Main action
 
 on:
   push:
