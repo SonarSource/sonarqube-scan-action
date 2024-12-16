@@ -294,7 +294,7 @@ If your source code file names contain special characters that are not covered b
     LC_ALL: "ru_RU.UTF-8"
 ```
 
-## Alternatives for Java, .NET, and C/C++ projects
+## Alternatives for Java and .NET
 
 This GitHub Action will not work for all technologies. If you are in one of the following situations, you should use the following alternatives:
 
