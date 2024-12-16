@@ -619,9 +619,9 @@ jobs:
       - name: Assert failure of previous step
         if: steps.wrong_ssl_certificate.outcome == 'success'
         run: exit 1
-  overridesScannerLocalFolderWhenPresent:
+  overridesScannerLocalFolderWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
-      'SCANNER_LOCAL_FOLDER' is overridden with warning when present
+      'SCANNER_LOCAL_FOLDER' is cleaned with warning when present
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -653,4 +653,31 @@ jobs:
         run: |
           [ -d "$SCANNER_LOCAL_FOLDER" ] || exit 1
           [ ! -f "$SCANNER_LOCAL_FOLDER/some_content.txt" ] || exit 1
-
+  overridesSonarSslFolderWhenPresent: # can happen in uncleaned self-hosted runners
+    name: >
+      'SONAR_SSL_FOLDER' is cleaned with warning when present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create SONAR_SSL_FOLDER with truststore.p12 file in it
+        run: |
+          SONAR_SSL_FOLDER=~/.sonar/ssl
+          mkdir -p "$SONAR_SSL_FOLDER"
+          touch "$SONAR_SSL_FOLDER/truststore.p12"
+          # emit SONAR_SSL_FOLDER to be able to read it in the next steps
+          echo "SONAR_SSL_FOLDER=$SONAR_SSL_FOLDER" >> $GITHUB_ENV
+      - name: Assert truststore.p12 file exists
+        run: |
+          [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+      - name: Run action
+        uses: ./
+        env:
+          # NO_CACHE not needed, as SONAR_SSL_FOLDER is setup when the Sonar Scanner is run, not installed 
+          SONAR_HOST_URL: http://not_actually_used
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert truststore.p12 doesn't exists anymore
+        run: |
+          [ ! -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
