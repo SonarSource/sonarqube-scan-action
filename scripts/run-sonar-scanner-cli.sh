@@ -36,7 +36,7 @@ if [[ -n "${SONAR_ROOT_CERT}" ]]; then
   # keytool require a password > 6 characters, so we wan't use the default password 'sonar'
   store_pass=changeit
   mkdir -p "$SONAR_SSL_FOLDER"
-  $SONAR_SCANNER_JRE/bin/java sun.security.tools.keytool.Main -storetype PKCS12 -keystore $SONAR_SSL_FOLDER/truststore.p12 -storepass $store_pass -noprompt -trustcacerts -importcert -alias sonar -file $RUNNER_TEMP/tmpcert.pem
+  "$SONAR_SCANNER_JRE/bin/java" sun.security.tools.keytool.Main -storetype PKCS12 -keystore "$SONAR_SSL_FOLDER/truststore.p12" -storepass $store_pass -noprompt -trustcacerts -importcert -alias sonar -file "$RUNNER_TEMP/tmpcert.pem"
   scanner_args+=("-Dsonar.scanner.truststorePassword=$store_pass")
 fi
 
