@@ -48,5 +48,13 @@ fi
 
 unzip -q -o $SCANNER_FILE_NAME
 
+SCANNER_UNZIP_FOLDER="sonar-scanner-$INPUT_SCANNERVERSION-$FLAVOR"
 # Folder name should correspond to the directory cached by the actions/cache
-mv sonar-scanner-$INPUT_SCANNERVERSION-$FLAVOR $RUNNER_TEMP/sonar-scanner-cli-$INPUT_SCANNERVERSION-$RUNNER_OS-$RUNNER_ARCH
+SCANNER_LOCAL_FOLDER="$RUNNER_TEMP/sonar-scanner-cli-$INPUT_SCANNERVERSION-$RUNNER_OS-$RUNNER_ARCH"
+
+if [ -d "$SCANNER_LOCAL_FOLDER" ]; then
+     echo "::warning title=SonarScanner::Cleaning existing scanner folder: $SCANNER_LOCAL_FOLDER"
+     rm -rf "$SCANNER_LOCAL_FOLDER"
+fi
+
+mv -f "$SCANNER_UNZIP_FOLDER" "$SCANNER_LOCAL_FOLDER"
