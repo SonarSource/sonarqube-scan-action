@@ -306,6 +306,13 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 
 * You want to run the action on C, C++, or Objective-C projects on a 32-bits system - build wrappers support only 64-bits OS.
 
+## Self-hosted runner or container
+
+When running the action in a self-hosted runner or container, please ensure that the following programs are installed:
+
+* **curl** or **wget**
+* **unzip**
+
 ## Additional information
 
 The `sonarqube-scan-action/install-build-wrapper` action installs `coreutils` if run on macOS.
