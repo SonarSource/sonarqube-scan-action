@@ -24,7 +24,7 @@ fi
 # The SSL folder may exist on an uncleaned self-hosted runner
 SONAR_SSL_FOLDER=~/.sonar/ssl
 # Use keytool for now, as SonarQube 10.6 and below doesn't support openssl generated keystores
-# keytool require a password > 6 characters, so we wan't use the default password 'sonar'
+# keytool requires a password > 6 characters, so we won't use the default password 'sonar'
 KEYTOOL_MAIN_CLASS=sun.security.tools.keytool.Main
 SONAR_SSL_TRUSTSTORE_FILE="$SONAR_SSL_FOLDER/truststore.p12"
 SONAR_SSL_TRUSTSTORE_PASSWORD=changeit
