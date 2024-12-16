@@ -746,6 +746,6 @@ jobs:
           args: -Dsonar.scanner.internal.dumpToFile=./output.properties
       - name: Assert truststore.p12 still exists, but it has been updated
         run: |
-          [ ! -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+          [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
           TRUSTSTORE_P12_MOD_TIME_AFTER=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
           [ "$TRUSTSTORE_P12_MOD_TIME_BEFORE" != "$TRUSTSTORE_P12_MOD_TIME_AFTER" ] || exit 1
