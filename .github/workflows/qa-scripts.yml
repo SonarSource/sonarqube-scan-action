@@ -1,0 +1,351 @@
+name: QA Scripts
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  create-install-dir-test:
+    name: create_install_path.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Existing
+        shell: bash
+        env:
+          INSTALL_PATH: '.sonar'
+        run: |
+          echo "- Create dir"
+          mkdir -p "${INSTALL_PATH}"
+
+          echo "- Test script behavior"
+          ./scripts/create_install_path.sh > output
+          grep -v "::error::" output
+
+      - name: Non-existing nested in current dir
+        shell: bash
+        env:
+          INSTALL_PATH: '.sonar'
+        run: |
+          ./scripts/create_install_path.sh > output
+          grep -v "::error::" output
+          test -d "${INSTALL_PATH}"
+
+      - name: Nonexisting nested in home
+        shell: bash
+        env:
+          INSTALL_PATH: '~/third_party/.sonar'
+        run: |
+          ./scripts/create_install_path.sh > output
+          grep -v "::error::" output
+          test -d "${INSTALL_PATH}"
+
+      - name: Empty install dir specified
+        shell: bash
+        env:
+          INSTALL_PATH: ''
+        run: |
+          (./scripts/create_install_path.sh || echo "=== Script failed ===") > output
+          grep "::error::Empty installation path specified" output
+          grep "=== Script failed ===" output
+
+      - name: No permission to create directory
+        shell: bash
+        env:
+          INSTALL_PATH: '/non_creatable'
+        run: |
+          (./scripts/create_install_path.sh || echo "=== Script failed ===") > output
+          grep "::error::Failed to create non-existing installation path '/non_creatable'" output
+          grep "=== Script failed ===" output
+
+      - name: Existing but not directory
+        shell: bash
+        env:
+          INSTALL_PATH: 'not_directory'
+        run: |
+          echo "- Create normal file"
+          echo "content" > "${INSTALL_PATH}"
+
+          echo "- Test script behavior"
+          (./scripts/create_install_path.sh || echo "=== Script failed ===") > output
+          grep "::error::Installation path 'not_directory' is not a directory" output
+          grep "=== Script failed ===" output
+
+
+      - name: Existing but not readable
+        shell: bash
+        env:
+          INSTALL_PATH: 'not_readable'
+        run: |
+          echo "- Create dir and make it not readable"
+          mkdir -p "${INSTALL_PATH}"
+          chmod -r "${INSTALL_PATH}"
+
+          echo "- Test script behavior"
+          (./scripts/create_install_path.sh || echo "=== Script failed ===") > output
+          grep "::error::Installation path 'not_readable' is not readable" output
+          grep "=== Script failed ===" output
+
+      - name: Existing but not writeable
+        shell: bash
+        env:
+          INSTALL_PATH: 'not_writeable'
+        run: |
+          echo "- Create dir and make it not writeable"
+          mkdir -p "${INSTALL_PATH}"
+          chmod -w "${INSTALL_PATH}"
+
+          echo "- Test script behavior"
+          (./scripts/create_install_path.sh || echo "=== Script failed ===") > output
+          grep "::error::Installation path 'not_writeable' is not writeable" output
+          grep "=== Script failed ===" output
+  setup-script-test:
+    name: configure_paths.sh
+    runs-on: ubuntu-latest
+    env:
+      INSTALL_PATH: 'install-directory'
+      SONAR_HOST_URL: 'http://sonar-host.com'
+      SONAR_SCANNER_VERSION: 'vX.Y.Z.MMMM'
+      SONAR_SCANNER_URL_WINDOWS_X64: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-windows-x64.zip'
+      SONAR_SCANNER_SHA_WINDOWS_X64: 'DOWNLOAD-SHA-WINDOWS-X64'
+      SONAR_SCANNER_URL_LINUX_X64: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-linux-x64.zip'
+      SONAR_SCANNER_SHA_LINUX_X64: 'DOWNLOAD-SHA-LINUX-X64'
+      SONAR_SCANNER_URL_LINUX_AARCH64: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-linux-aarch64.zip'
+      SONAR_SCANNER_SHA_LINUX_AARCH64: 'DOWNLOAD-SHA-LINUX-AARCH64'
+      SONAR_SCANNER_URL_MACOSX_X64: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-macosx-x64.zip'
+      SONAR_SCANNER_SHA_MACOSX_X64: 'DOWNLOAD-SHA-MACOSX-X64'
+      SONAR_SCANNER_URL_MACOSX_AARCH64: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-macosx-aarch64.zip'
+      SONAR_SCANNER_SHA_MACOSX_AARCH64: 'DOWNLOAD-SHA-MACOSX-AARCH64'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Windows
+        shell: bash
+        env:
+          OS: 'Windows'
+          ARCH: 'X64'
+        run: |
+          ./scripts/configure_paths.sh > output
+          grep -v "::error::" output
+
+          echo "- Check sonar-scanner:"
+          grep "sonar-scanner-url=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-windows-x64.zip" output
+          grep "sonar-scanner-sha=DOWNLOAD-SHA-WINDOWS-X64" output
+          grep "sonar-scanner-dir=install-directory/sonar-scanner-vX.Y.Z.MMMM-windows-x64" output
+          grep "sonar-scanner-bin=install-directory/sonar-scanner-vX.Y.Z.MMMM-windows-x64/bin/sonar-scanner.bat" output
+
+          echo "- Check build-wrapper:"
+          grep "build-wrapper-url=http://sonar-host.com/static/cpp/build-wrapper-win-x86.zip" output
+          grep "build-wrapper-dir=install-directory/build-wrapper-win-x86" output
+          grep "build-wrapper-bin=install-directory/build-wrapper-win-x86/build-wrapper-win-x86-64.exe" output
+
+      - name: Linux X64
+        shell: bash
+        env:
+          OS: 'Linux'
+          ARCH: 'X64'
+        run: |
+          ./scripts/configure_paths.sh > output
+          grep -v "::error::" output
+
+          echo "- Check sonar-scanner:"
+          grep "sonar-scanner-url=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-linux-x64.zip" output
+          grep "sonar-scanner-sha=DOWNLOAD-SHA-LINUX-X64" output
+          grep "sonar-scanner-dir=install-directory/sonar-scanner-vX.Y.Z.MMMM-linux-x64" output
+          grep "sonar-scanner-bin=install-directory/sonar-scanner-vX.Y.Z.MMMM-linux-x64/bin/sonar-scanner" output
+
+          echo "- Check build-wrapper:"
+          grep "build-wrapper-url=http://sonar-host.com/static/cpp/build-wrapper-linux-x86.zip" output
+          grep "build-wrapper-dir=install-directory/build-wrapper-linux-x86" output
+          grep "build-wrapper-bin=install-directory/build-wrapper-linux-x86/build-wrapper-linux-x86-64" output
+
+      - name: Linux ARM64
+        shell: bash
+        env:
+          OS: 'Linux'
+          ARCH: 'ARM64'
+        run: |
+          ./scripts/configure_paths.sh > output
+          grep -v "::error::" output
+          echo "- Check sonar-scanner:"
+          grep "sonar-scanner-url=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-linux-aarch64.zip" output
+          grep "sonar-scanner-sha=DOWNLOAD-SHA-LINUX-AARCH64" output
+          grep "sonar-scanner-dir=install-directory/sonar-scanner-vX.Y.Z.MMMM-linux-aarch64" output
+          grep "sonar-scanner-bin=install-directory/sonar-scanner-vX.Y.Z.MMMM-linux-aarch64/bin/sonar-scanner" output
+          echo "- Check build-wrapper:"
+          grep "build-wrapper-url=http://sonar-host.com/static/cpp/build-wrapper-linux-aarch64.zip" output
+          grep "build-wrapper-dir=install-directory/build-wrapper-linux-aarch64" output
+          grep "build-wrapper-bin=install-directory/build-wrapper-linux-aarch64/build-wrapper-linux-aarch64" output
+
+      - name: macOSX_X64
+        shell: bash
+        env:
+          OS: 'macOS'
+          ARCH: 'X64'
+        run: |
+          ./scripts/configure_paths.sh > output
+          grep -v "::error::" output
+
+          echo "- Check sonar-scanner:"
+          grep "sonar-scanner-url=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-macosx-x64.zip" output
+          grep "sonar-scanner-sha=DOWNLOAD-SHA-MACOSX-X64" output
+          grep "sonar-scanner-dir=install-directory/sonar-scanner-vX.Y.Z.MMMM-macosx-x64" output
+          grep "sonar-scanner-bin=install-directory/sonar-scanner-vX.Y.Z.MMMM-macosx-x64/bin/sonar-scanner" output
+
+          echo "- Check build-wrapper:"
+          grep "build-wrapper-url=http://sonar-host.com/static/cpp/build-wrapper-macosx-x86.zip" output
+          grep "build-wrapper-dir=install-directory/build-wrapper-macosx-x86" output
+          grep "build-wrapper-bin=install-directory/build-wrapper-macosx-x86/build-wrapper-macosx-x86" output
+
+      - name: macOSX_ARM64
+        shell: bash
+        env:
+          OS: 'macOS'
+          ARCH: 'ARM64'
+        run: |
+          ./scripts/configure_paths.sh > output
+          grep -v "::error::" output
+
+          echo "- Check sonar-scanner:"
+          grep "sonar-scanner-url=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-macosx-aarch64.zip" output
+          grep "sonar-scanner-sha=DOWNLOAD-SHA-MACOSX-AARCH64" output
+          grep "sonar-scanner-dir=install-directory/sonar-scanner-vX.Y.Z.MMMM-macosx-aarch64" output
+          grep "sonar-scanner-bin=install-directory/sonar-scanner-vX.Y.Z.MMMM-macosx-aarch64/bin/sonar-scanner" output
+
+          echo "- Check build-wrapper:"
+          grep "build-wrapper-url=http://sonar-host.com/static/cpp/build-wrapper-macosx-x86.zip" output
+          grep "build-wrapper-dir=install-directory/build-wrapper-macosx-x86" output
+          grep "build-wrapper-bin=install-directory/build-wrapper-macosx-x86/build-wrapper-macosx-x86" output
+
+      - name: Unsupported OS
+        shell: bash
+        env:
+          OS: 'unsupportedOS'
+          ARCH: 'X64'
+        run: |
+          (./scripts/configure_paths.sh  || echo "=== Script failed ===") > output
+
+          echo "- Check errors:"
+          grep "::error::Unsupported runner OS 'unsupportedOS'" output
+          grep "=== Script failed ===" output
+
+      - name: Unsupported architecture
+        shell: bash
+        env:
+          OS: 'Linux'
+          ARCH: 'X86'
+        run: |
+          (./scripts/configure_paths.sh  || echo "=== Script failed ===") > output
+
+          echo "- Check errors:"
+          grep "::error::Architecture 'X86' is unsupported by build-wrapper" output
+          grep "=== Script failed ===" output
+  download-script-test:
+    name: download.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Download test without validation
+        shell: bash
+        env:
+          INSTALL_PATH: 'install-directory-no-sha-validation'
+          DOWNLOAD_URL: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip'
+          EXPECTED_SHA: 'incorrect-sha-not-validated'
+          TMP_ZIP_PATH: ${{ runner.temp }}/sonar-scanner.zip
+        run: |
+          ./scripts/download.sh > output
+          test -f "$TMP_ZIP_PATH"
+          grep -v "::error::" output
+      - name: Download test with validation
+        shell: bash
+        env:
+          INSTALL_PATH: 'install-directory-sha-validation'
+          DOWNLOAD_URL: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip'
+          EXPECTED_SHA: '9411331814c1d002bd65d37758b872918b7602e7cf3ca5b83a3e19a729b2be05'
+          TMP_ZIP_PATH: ${{ runner.temp }}/sonar-scanner.zip
+        run: |
+          ./scripts/download.sh -v > output
+          test -f "$TMP_ZIP_PATH"
+          grep -v "::error::" output
+      - name: Incorrect install dir
+        shell: bash
+        env:
+          INSTALL_PATH: ''
+        run: |
+          (./scripts/download.sh || echo "=== Script failed ===") > output
+          grep "::error::Failed to create" output
+          grep "=== Script failed ===" output
+      - name: Incorrect download url
+        shell: bash
+        env:
+          INSTALL_PATH: 'install-directory-incorrect-url'
+          DOWNLOAD_URL: 'incorrect-url'
+        run: |
+          (./scripts/download.sh || echo "=== Script failed ===") > output
+          grep "::error::Failed to download 'incorrect-url'" output
+          grep "=== Script failed ===" output
+      - name: Incorrect SHA256
+        shell: bash
+        env:
+          INSTALL_PATH: 'install-directory-incorrect-sha'
+          DOWNLOAD_URL: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip'
+          EXPECTED_SHA: 'incorrect-sha256'
+          TMP_ZIP_PATH: ${{ runner.temp }}/sonar-scanner.zip
+        run: |
+          (./scripts/download.sh -v || echo "=== Script failed ===") > output
+          grep "::error::Checking sha256 failed" output
+          grep "=== Script failed ===" output
+      - name: Mismatching SHA256
+        shell: bash
+        env:
+          INSTALL_PATH: 'install-directory-mismtaching-sha'
+          DOWNLOAD_URL: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.6.2.2472-linux.zip'
+          EXPECTED_SHA: '3e121d85a4adb1f30b917d5f3eb897966b59e02c3d6d313a78dcd964193dc963'
+          TMP_ZIP_PATH: ${{ runner.temp }}/sonar-scanner.zip
+        run: |
+          (./scripts/download.sh -v || echo "=== Script failed ===") > output
+          grep "::error::Checking sha256 failed" output
+          grep "=== Script failed ===" output
+  fetch-latest-version-test:
+    name: fetch_latest_version.sh
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: Test script
+        shell: bash
+        run: |
+          ./scripts/fetch_latest_version.sh > output
+         
+          echo "- Check sonar-scanner version:"
+          grep  "sonar-scanner-version=" output
+          SONAR_SCANNER_VERSION=$(cat output | cut -d= -f 2)
+          test ! -z "${SONAR_SCANNER_VERSION}"
+
+          echo "- Check windows sonar-scanner URLs:"
+          grep "sonar-scanner-url-windows-x64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-windows-x64.zip" output
+          grep -e "^sonar-scanner-sha-windows-x64=[0-9A-Fa-f]\+$" output
+
+          echo "- Check linux sonar-scanner URLs:"
+          grep "sonar-scanner-url-linux-x64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux-x64.zip" output
+          grep -e "^sonar-scanner-sha-linux-x64=[0-9A-Fa-f]\+$" output
+          grep "sonar-scanner-url-linux-aarch64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux-aarch64.zip" output
+          grep -e "^sonar-scanner-sha-linux-aarch64=[0-9A-Fa-f]\+$" output
+
+          echo "- Check macosx sonar-scanner URLs:"
+          grep "sonar-scanner-url-linux-x64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux-x64.zip" output
+          grep -e "^sonar-scanner-sha-linux-x64=[0-9A-Fa-f]\+$" output
+          grep "sonar-scanner-url-linux-aarch64=https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux-aarch64.zip" output
+          grep -e "^sonar-scanner-sha-linux-aarch64=[0-9A-Fa-f]\+$" output

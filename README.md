@@ -1,4 +1,4 @@
-# Scan your code with SonarQube [![QA](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa.yml)
+# Scan your code with SonarQube [![QA Main](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-main.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-main.yml) [![QA Install Build Wrapper](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-install-build-wrapper.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-install-build-wrapper.yml) [![QA Scripts](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-scripts.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-scripts.yml) [![QA Deprecated C and C++ Action](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-deprecated-c-cpp.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-deprecated-c-cpp.yml)
 
 This SonarSource project, available as a GitHub Action, scans your projects with SonarQube [Server](https://www.sonarsource.com/products/sonarqube/) or [Cloud](https://www.sonarsource.com/products/sonarcloud/).
 
@@ -10,6 +10,9 @@ SonarQube [Server](https://www.sonarsource.com/products/sonarqube/) and [Cloud](
 It helps developers detect coding issues in 30+ languages, frameworks, and IaC platforms, including Java, JavaScript, TypeScript, C#, Python, C, C++, and [many more](https://www.sonarsource.com/knowledge/languages/).
 
 The solution also provides fix recommendations leveraging AI with Sonar's AI CodeFix capability.
+
+> [!NOTE]  
+> This action now supports and is the official entrypoint for scanning C, C++, Objective-C and Dart projects via GitHub actions.
 
 ## Requirements
 
@@ -38,7 +41,11 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow, usually declared under `.github/workflows`, looks like:
+In the following cases:
+- for projects that don't have C, C++, or Objective-C in them
+- for C, C++, Objective-C projects that don't use [Build Wrapper](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/prerequisites/#using-buildwrapper)
+
+the workflow, usually declared under `.github/workflows`, looks like the following:
 
 ```yaml
 on:
@@ -62,11 +69,68 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+      uses: SonarSource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
 ```
+
+For C, C++, and Objective-C projects relying on [Build Wrapper](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/prerequisites/#using-buildwrapper) to generate the compilation database, the workflow requires additional steps to download the Build Wrapper and invoke it:
+
+```yaml
+# Trigger analysis when pushing to your main branches, and when creating a pull request.
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'releases/**'
+  pull_request:
+      types: [opened, synchronize, reopened]
+
+name: Main Workflow
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        fetch-depth: 0
+    - name: Install Build Wrapper
+      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@<action version>
+      env:
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    - name: Run Build Wrapper
+      run: |
+        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
+        # build-preparation steps
+        # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@<action version>
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
+      with:
+        # Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+        args: >
+          --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+```
+
+If you are using SonarQube Server 10.5 or earlier, use `sonar.cfamily.build-wrapper-output` instead of `sonar.cfamily.compile-commands` in the `args` property of the last step, as Build Wrapper does not generate a `compile_commands.json` file before SonarQube Server 10.6.
+
+It should look like this:
+
+```yaml
+with:  
+  args: >
+    --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+```
+
+See also [example configurations of C++ projects for SonarQube Server](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sq&type=repositories).
 
 ### Cloud
 
@@ -79,7 +143,11 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 sonar.sources=.
 ```
 
-The workflow, usually declared under `.github/workflows`, looks like:
+In the following cases:
+- for projects that don't have C, C++, or Objective-C in them
+- for C, C++, Objective-C projects that don't use [Build Wrapper](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/languages/c-family/prerequisites/#using-build-wrapper)
+
+the workflow, usually declared under `.github/workflows`, looks like the following:
 
 ```yaml
 on:
@@ -103,25 +171,61 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+      uses: SonarSource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
 
-## Self-hosted runner or container
+For C, C++, and Objective-C projects relying on [Build Wrapper](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/languages/c-family/prerequisites/#using-build-wrapper) to generate the compilation database, the workflow requires additional steps to download the Build Wrapper and invoke it:
 
-When running the action in a self-hosted runner or container, please ensure that the following programs are installed:
+```yaml
+# Trigger analysis when pushing to your main branches, and when creating a pull request.
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'releases/**'
+  pull_request:
+      types: [opened, synchronize, reopened]
 
-* **curl** or **wget**
-* **unzip**
+name: Main Workflow
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # Disabling shallow clone is recommended for improving relevancy of reporting
+        fetch-depth: 0
+    - name: Install Build Wrapper
+      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@<action version>
+    - name: Run Build Wrapper
+      run: |
+        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
+        # build-preparation steps
+        # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@<action version>
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
+      with:
+        # Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+        args: >
+          --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+```
 
+See also [example configurations of C++ projects for SonarQube Cloud](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sc&type=repositories).
 
 ## Action parameters
 
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     projectBaseDir: app/src
 ```
@@ -129,7 +233,7 @@ You can change the analysis base directory by using the optional input `projectB
 In case you need to specify the version of the Sonar Scanner, you can use the `scannerVersion` option:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     scannerVersion: 6.2.0.4584
 ```
@@ -137,7 +241,7 @@ In case you need to specify the version of the Sonar Scanner, you can use the `s
 In case you need to add additional analysis parameters, and you do not wish to set them in the `sonar-project.properties` file, you can use the `args` option:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     projectBaseDir: app/src
     args: >
@@ -155,7 +259,7 @@ The specified URL overrides the default address: `https://binaries.sonarsource.c
 This can be useful when the runner executing the action is self-hosted and has regulated or no access to the Internet:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     scannerBinariesUrl: https://my.custom.binaries.url.com/Distribution/sonar-scanner-cli/
 ```
@@ -167,14 +271,13 @@ More information about possible analysis parameters can be found:
 ### Environment variables
 
 - `SONAR_TOKEN` – **Required** this is the token used to authenticate access to SonarQube. You can read more about security tokens in the documentation of SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/user-guide/managing-tokens/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/managing-your-account/managing-tokens/). You can set the `SONAR_TOKEN` environment variable in the "Secrets" settings page of your repository, or you can add them at the level of your GitHub organization (recommended).
-- *`GITHUB_TOKEN` – Provided by Github (see [Authenticating with the GITHUB_TOKEN](https://help.github.com/en/actions/automating-your-workflow-with-github-actions/authenticating-with-the-github_token)).*
 - `SONAR_HOST_URL` – this tells the scanner where SonarQube Server is hosted. You can set the `SONAR_HOST_URL` environment variable in the "Variables" settings page of your repository, or you can add them at the level of your GitHub organization (recommended). Not needed for SonarQube Cloud.
 - `SONAR_ROOT_CERT` – Holds an additional certificate (in PEM format) that is used to validate the certificate of SonarQube Server or of a secured proxy to SonarQube (Server or Cloud). You can set the `SONAR_ROOT_CERT` environment variable in the "Secrets" settings page of your repository, or you can add them at the level of your GitHub organization (recommended).
 
 Here is an example of how you can pass a certificate (in PEM format) to the Scanner truststore:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   env:
     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
@@ -184,7 +287,7 @@ Here is an example of how you can pass a certificate (in PEM format) to the Scan
 If your source code file names contain special characters that are not covered by the locale range of `en_US.UTF-8`, you can configure your desired locale like this:
 
 ```yaml
-- uses: sonarsource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version>
   env:
     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }} # or https://sonarcloud.io
@@ -198,9 +301,21 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 * Your code is built with Maven. Read the documentation about our SonarScanner for Maven in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-maven/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-maven/).
 * Your code is built with Gradle. Read the documentation about our SonarScanner for Gradle in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-gradle/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-gradle/).
 * You want to analyze a .NET solution. Read the documentation about our SonarScanner for .NET in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/dotnet/introduction/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-dotnet/introduction/).
-* You want to analyze C or C++ code. Starting from SonarQube 10.6, this GitHub Action will scan C and C++ out of the box. If you want to have better control over the scan configuration/setup, you can switch to:
-  * the [SonarQube Server Scan for C and C++](https://github.com/marketplace/actions/sonarqube-scan-for-c-and-c) GitHub Action, for projects on SonarQube Server
-  * the [SonarQube Cloud Scan for C and C++](https://github.com/marketplace/actions/sonarcloud-scan-for-c-and-c) GitHub Action, for projects on SonarQube Cloud - look at [our sample C and C++ project](https://github.com/sonarsource-cfamily-examples?q=gh-actions-sc&type=all&language=&sort=).
+
+## Do not use this GitHub action if you are in the following situations
+
+* You want to run the action on C, C++, or Objective-C projects on a 32-bits system - build wrappers support only 64-bits OS.
+
+## Self-hosted runner or container
+
+When running the action in a self-hosted runner or container, please ensure that the following programs are installed:
+
+* **curl** or **wget**
+* **unzip**
+
+## Additional information
+
+The `sonarqube-scan-action/install-build-wrapper` action installs `coreutils` if run on macOS.
 
 ## Have questions or feedback?
 
