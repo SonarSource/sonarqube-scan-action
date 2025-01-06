@@ -105,7 +105,7 @@ jobs:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     - name: Run Build Wrapper
       run: |
-        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
+        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/overview/#using-build-wrapper for more information
         # build-preparation steps
         # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
     - name: SonarQube Scan
@@ -115,7 +115,7 @@ jobs:
         SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
       with:
-        # Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+        # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
         args: >
           --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
 ```
@@ -204,7 +204,7 @@ jobs:
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@<action version>
     - name: Run Build Wrapper
       run: |
-        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube/latest/ analyzing-source-code/languages/c-family/#using-build-wrapper for more information
+        # here goes your compilation wrapped with build-wrapper; See https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/languages/c-family/overview/#using-build-wrapper for more information
         # build-preparation steps
         # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
     - name: SonarQube Scan
@@ -213,7 +213,7 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
       with:
-        # Consult https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
+        # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
         args: >
           --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
 ```
