@@ -2,8 +2,10 @@
 
 This SonarSource project, available as a GitHub Action, scans your projects with SonarQube [Server](https://www.sonarsource.com/products/sonarqube/) or [Cloud](https://www.sonarsource.com/products/sonarcloud/).
 
-![Logo](./images/SQ_Logo_Server_Cloud_Dark_Backgrounds.png#gh-dark-mode-only)
-![Logo](./images/SQ_Logo_Server_Cloud_Light_Backgrounds.png#gh-light-mode-only)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./images/SQ_Logo_Server_Cloud_Dark_Backgrounds.png">
+  <img alt="SonarQube Logo" src="./images/SQ_Logo_Server_Cloud_Light_Backgrounds.png">
+</picture>
 
 SonarQube [Server](https://www.sonarsource.com/products/sonarqube/) and [Cloud](https://www.sonarsource.com/products/sonarcloud/) (formerly SonarQube and SonarCloud) is a widely used static analysis solution for continuous code quality and security inspection.
 
