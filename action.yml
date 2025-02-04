@@ -31,7 +31,7 @@ runs:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
     - name: Load Sonar Scanner CLI from cache
       id: sonar-scanner-cli
-      uses: actions/cache@v4
+      uses: actions/cache@v4.2.0
       env:
         # The default value is 60mins. Reaching timeout is treated the same as a cache miss.
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
