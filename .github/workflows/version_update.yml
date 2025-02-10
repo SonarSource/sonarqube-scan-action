@@ -8,6 +8,9 @@ jobs:
   update-version:
     name: Prepare pull request for sonar-scanner version update
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - run: sudo apt install -y jq
 
@@ -34,7 +37,7 @@ jobs:
         shell: bash
         env:
           UPDATE_BRANCH: update-to-sonar-scanner-${{ steps.latest-version.outputs.sonar-scanner-version }}
-          TITLE: "Update sonar-scanner-version to ${{ steps.latest-version.outputs.sonar-scanner-version }}"
+          TITLE: "Update SonarScanner CLI to ${{ steps.latest-version.outputs.sonar-scanner-version }}"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "SonarTech"
