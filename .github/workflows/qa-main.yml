@@ -551,7 +551,7 @@ jobs:
           SONAR_ROOT_CERT: ${{ env.SONAR_ROOT_CERT_VALID }}
           SONAR_HOST_URL: https://localhost:4443
         with:
-          args: -Dsonar.login=admin -Dsonar.password=admin
+          args: -X -Dsonar.login=admin -Dsonar.password=admin
           projectBaseDir: ./test/example-project
       - name: Clear imported SSL certificates
         run: |
