@@ -13,7 +13,7 @@ jobs:
       pull-requests: write
     steps:
       - run: sudo apt install -y jq
-
+      - run: sudo snap install yq
       - uses: actions/checkout@v4
         with:
           ref: master
@@ -31,7 +31,13 @@ jobs:
         run: |
           ./scripts/fetch_latest_version.sh > sonar-scanner-version
           cat sonar-scanner-version >> $GITHUB_OUTPUT
-
+      - name: "Update default version"
+        if: steps.tagged-version.outputs.sonar-scanner-version != steps.latest-version.outputs.sonar-scanner-version
+        shell: bash
+        env:
+          NEW_VERSION: ${{ steps.latest-version.outputs.sonar-scanner-version }}
+        run: |
+           yq -i '.inputs.scannerVersion.default = "${NEW_VERSION}"' action.yml
       - name: "Create Pull Request for version update"
         if: steps.tagged-version.outputs.sonar-scanner-version != steps.latest-version.outputs.sonar-scanner-version
         shell: bash
@@ -44,6 +50,7 @@ jobs:
           git config --global user.email "sonartech@sonarsource.com"
           git checkout -b ${UPDATE_BRANCH}
           git add sonar-scanner-version
+          git add action.yml
           git commit -m "${TITLE}"
           git push --force-with-lease origin ${UPDATE_BRANCH}
           gh pr list
