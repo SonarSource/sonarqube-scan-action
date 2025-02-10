@@ -450,6 +450,7 @@ jobs:
         uses: ./
         with:
           scannerBinariesUrl: http://localhost:8080/clientRedirectToSonarBinaries
+          scannerVersion: 6.2.1.4610
         env:
           NO_CACHE: true
           SONAR_HOST_URL: http://not_actually_used
