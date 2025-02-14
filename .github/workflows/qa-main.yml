@@ -449,6 +449,7 @@ jobs:
         id: runTest
         uses: ./
         with:
+          scannerVersion: 6.2.1.4610
           scannerBinariesUrl: http://localhost:8080/clientRedirectToSonarBinaries
         env:
           NO_CACHE: true
