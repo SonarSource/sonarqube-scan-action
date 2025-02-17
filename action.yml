@@ -1,7 +1,7 @@
 name: Official SonarQube Scan
 # Warning: changing name would change URL in the marketplace
 description: >
-  Scan your code with SonarQube Server and Cloud to detect  issues in 30+ languages. (Formerly SonarQube and SonarCloud)
+  Scan your code with SonarQube Server and Cloud to detect issues in 30+ languages. (Formerly SonarQube and SonarCloud)
 
 branding:
   icon: check
