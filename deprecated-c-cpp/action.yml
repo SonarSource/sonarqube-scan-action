@@ -71,7 +71,7 @@ runs:
     - name: Cache sonar-scanner installation
       id: cache-sonar-tools
       if: inputs.cache-binaries == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@v4.2.0
       env:
         # The default value is 60mins. Reaching timeout is treated the same as a cache miss.
         SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
