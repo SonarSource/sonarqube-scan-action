@@ -104,7 +104,7 @@ jobs:
     - name: Install Build Wrapper
       uses: SonarSource/sonarqube-scan-action/install-build-wrapper@<action version>
       env:
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
     - name: Run Build Wrapper
       run: |
         # Here goes your compilation wrapped with Build Wrapper
@@ -115,7 +115,7 @@ jobs:
       uses: SonarSource/sonarqube-scan-action@<action version>
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
       with:
         # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
