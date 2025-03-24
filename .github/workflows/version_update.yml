@@ -37,7 +37,7 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.latest-version.outputs.sonar-scanner-version }}
         run: |
-           yq -i '.inputs.scannerVersion.default = "$NEW_VERSION"' action.yml
+           yq -i '.inputs.scannerVersion.default = strenv(NEW_VERSION)' action.yml
       - name: "Create Pull Request for version update"
         if: steps.tagged-version.outputs.sonar-scanner-version != steps.latest-version.outputs.sonar-scanner-version
         shell: bash
