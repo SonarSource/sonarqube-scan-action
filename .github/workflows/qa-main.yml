@@ -1,0 +1,785 @@
+name: QA Main action
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  noInputsTest:
+    name: >
+      No inputs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.projectBaseDir=."
+  argsInputTest:
+    name: >
+      'args' input
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        with:
+          args: -Dsonar.someArg=aValue -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
+  projectBaseDirInputTest:
+    name: >
+      'projectBaseDir' input
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: mkdir -p ./baseDir
+      - name: Run action with projectBaseDir
+        uses: ./
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+          projectBaseDir: ./baseDir
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.projectBaseDir=.*/baseDir"
+  scannerVersionTest:
+    name: >
+      'scannerVersion' input
+    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with scannerVersion
+        uses: ./
+        with:
+          scannerVersion: 6.1.0.4477
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          NO_CACHE: true # force install-sonar-scanner-cli.sh execution
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileExists "$RUNNER_TEMP/sonarscanner/sonar-scanner-cli-6.1.0.4477-linux-x64.zip"
+  scannerBinariesUrlTest:
+    name: >
+      'scannerBinariesUrl' input with invalid URL
+    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerVersion: 6.2.1.4610
+          scannerBinariesUrl: https://invalid_uri/Distribution/sonar-scanner-cli
+        env:
+          NO_CACHE: true # force install-sonar-scanner-cli.sh execution
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Fail if action succeeded
+        if: steps.runTest.outcome == 'success'
+        run: exit 1
+      - name: Assert Sonar Scanner CLI was not downloaded
+        run: |
+          ./test/assertFileDoesntExist "$RUNNER_TEMP/sonarscanner/sonar-scanner-cli-6.2.1.4610-linux-x64.zip"
+      - name: Assert Sonar Scanner CLI was not executed
+        run: |
+          ./test/assertFileDoesntExist ./output.properties
+  scannerBinariesUrlIsEscapedWithWget:
+    name: >
+      'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerBinariesUrl: 'http://some_uri;touch file.txt;'
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
+      - name: Assert file.txt does not exist
+        run: |
+          ./test/assertFileDoesntExist "$RUNNER_TEMP/sonarscanner/file.txt"
+  scannerBinariesUrlIsEscapedWithCurl:
+    name: >
+      'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget
+        run: sudo apt-get remove -y wget
+      - name: Assert wget is not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerBinariesUrl: 'http://some_uri http://another_uri''; touch file.txt;'
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
+      - name: Assert file.txt does not exist
+        run: |
+          ./test/assertFileDoesntExist "$RUNNER_TEMP/sonarscanner/file.txt"
+  dontFailGradleTest:
+    name: >
+      Don't fail on Gradle project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on Gradle project
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          projectBaseDir: ./test/gradle-project
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  dontFailGradleKotlinTest:
+    name: >
+      Don't fail on Kotlin Gradle project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on Kotlin Gradle project
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          projectBaseDir: ./test/gradle-project
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  dontFailMavenTest:
+    name: >
+      Don't fail on Maven project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on Maven project
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          projectBaseDir: ./test/maven-project
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  runAnalysisTest:
+    runs-on: ubuntu-latest
+    services:
+      sonarqube:
+        image: sonarqube:lts-community
+        ports:
+          - 9000:9000
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_logs:/opt/sonarqube/logs
+          - sonarqube_extensions:/opt/sonarqube/extensions
+        options: >-
+          --health-cmd "grep -Fq \"SonarQube is operational\" /opt/sonarqube/logs/sonar.log"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action on sample project
+        id: runTest
+        uses: ./
+        env:
+          SONAR_HOST_URL: http://localhost:9000
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt
+  runnerDebugUsedTest:
+    name: >
+      'RUNNER_DEBUG' is used
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with debug mode
+        uses: ./
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          RUNNER_DEBUG: 1
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.verbose=true"
+  runAnalysisWithCacheTest:
+    runs-on: ubuntu-latest
+    services:
+      sonarqube:
+        image: sonarqube:lts-community
+        ports:
+          - 9000:9000
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_logs:/opt/sonarqube/logs
+          - sonarqube_extensions:/opt/sonarqube/extensions
+        options: >-
+          --health-cmd "grep -Fq \"SonarQube is operational\" /opt/sonarqube/logs/sonar.log"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: SonarQube Cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.sonar/cache
+          key: ${{ runner.os }}-${{ runner.arch }}-sonar
+      - name: Run action on sample project
+        id: runTest
+        uses: ./
+        env:
+          SONAR_HOST_URL: http://localhost:9000
+          SONAR_USER_HOME: ${{ github.workspace }}/.sonar
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt        
+  overrideSonarcloudUrlTest:
+    name: >
+      'SONARCLOUD_URL' is used
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with SONARCLOUD_URL
+        uses: ./
+        with:
+          args: -Dsonar.scanner.apiBaseUrl=api.mirror.sonarcloud.io -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          SONARCLOUD_URL: mirror.sonarcloud.io
+          SONAR_TOKEN: FAKE_TOKEN
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.host.url=mirror.sonarcloud.io"
+          ./test/assertFileContains ./output.properties "sonar.scanner.sonarcloudUrl=mirror.sonarcloud.io" 
+  dontFailWhenMissingWgetButCurlAvailable:
+    name: Don't fail when missing wget but curl available
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget
+        run: sudo apt-get remove -y wget
+      - name: Assert wget is not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action
+        uses: ./
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  dontFailWhenMissingCurlButWgetAvailable:
+    name: Don't fail when missing curl but wget available
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove curl
+        run: sudo apt-get remove -y curl
+      - name: Assert curl is not available
+        run: |
+          if command -v curl 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action
+        id: runTest
+        uses: ./
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties
+  failWhenBothWgetAndCurlMissing:
+    name: Fail when both wget and curl are missing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget and curl
+        run: sudo apt-get remove -y wget curl
+      - name: Assert wget and curl are not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+          if command -v curl 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Run action
+        id: runTest
+        uses: ./
+        continue-on-error: true
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert failure of previous step
+        if: steps.runTest.outcome == 'success'
+        run: exit 1
+  curlPerformsRedirect:
+    name: >
+      curl performs redirect when scannerBinariesUrl returns 3xx
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove wget
+        run: sudo apt-get remove -y wget
+      - name: Assert wget is not available
+        run: |
+          if command -v wget 2>&1 >/dev/null
+          then
+            exit 1
+          fi
+      - name: Start nginx via Docker Compose
+        run: docker compose up -d --wait
+        working-directory: .github/qa-nginx-redirecting
+      - name: Run action with scannerBinariesUrl
+        id: runTest
+        uses: ./
+        with:
+          scannerVersion: 6.2.1.4610
+          scannerBinariesUrl: http://localhost:8080/clientRedirectToSonarBinaries
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
+      - name: Assert Sonar Scanner CLI was downloaded
+        run: |
+          ./test/assertFileExists "$RUNNER_TEMP/sonarscanner/sonar-scanner-cli-6.2.1.4610-linux-x64.zip"
+  useSslCertificate:
+    name: >
+      'SONAR_ROOT_CERT' is converted to truststore
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with SSL certificate
+        uses: ./
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            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
+            Fct6d1S08JAosVnZcP2P7Yz+TbmDRtsqCgk=
+            -----END CERTIFICATE-----
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert
+        run: |
+          ./test/assertFileExists ~/.sonar/ssl/truststore.p12
+  analysisWithSslCertificate:
+    name: >
+      Analysis takes into account 'SONAR_ROOT_CERT'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate server certificate
+        run: |
+          openssl req \
+            -newkey rsa:4096 \
+            -x509 \
+            -sha256 \
+            -addext "subjectAltName = DNS:localhost" \
+            -days 3650 \
+            -nodes \
+            -out server.crt \
+            -subj "/C=CH/ST=Geneva/L=Geneva/O=Server/OU=Dept" \
+            -keyout server.key
+        working-directory: .github/qa-sq-behind-ngix
+      - name: Start nginx and SonarQube via Docker Compose
+        run: docker compose up -d --wait
+        working-directory: .github/qa-sq-behind-ngix
+      - name: Read correct server certificate 
+        run: |
+          # read server.crt from .github/qa-sq-behind-ngix/ and store into the SONAR_ROOT_CERT_VALID 
+          # environment variable, to be able to read it in the next step
+          {
+            echo 'SONAR_ROOT_CERT_VALID<<=========='
+            cat .github/qa-sq-behind-ngix/server.crt
+            echo ==========
+          } >> $GITHUB_ENV
+      - name: Run action with the correct SSL certificate
+        uses: ./
+        env:
+          SONAR_ROOT_CERT: ${{ env.SONAR_ROOT_CERT_VALID }}
+          SONAR_HOST_URL: https://localhost:4443
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Clear imported SSL certificates
+        run: |
+          rm -f ~/.sonar/ssl/truststore.p12
+      - name: Run action with an invalid SSL certificate
+        id: invalid_ssl_certificate
+        continue-on-error: true
+        uses: ./
+        env:
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            INVALID
+            -----END CERTIFICATE-----
+          SONAR_HOST_URL: https://localhost:4443
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert failure of previous step
+        if: steps.invalid_ssl_certificate.outcome == 'success'
+        run: exit 1
+      - name: Clear imported SSL certificates
+        run: |
+          rm -f ~/.sonar/ssl/truststore.p12
+      - name: Run action with the wrong SSL certificate
+        id: wrong_ssl_certificate
+        continue-on-error: true
+        uses: ./
+        env:
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            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
+            -----END CERTIFICATE-----
+          SONAR_HOST_URL: https://localhost:4443
+        with:
+          args: -Dsonar.login=admin -Dsonar.password=admin
+          projectBaseDir: ./test/example-project
+      - name: Assert failure of previous step
+        if: steps.wrong_ssl_certificate.outcome == 'success'
+        run: exit 1
+  overridesScannerLocalFolderWhenPresent: # can happen in uncleaned self-hosted runners
+    name: >
+      'SCANNER_LOCAL_FOLDER' is cleaned with warning when present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create a dummy SCANNER_LOCAL_FOLDER with dummy content in it
+        run: |
+          SCANNER_VERSION="6.2.1.4610"
+          SCANNER_LOCAL_FOLDER="$RUNNER_TEMP/sonar-scanner-cli-$SCANNER_VERSION-$RUNNER_OS-$RUNNER_ARCH"
+          # emit SCANNER_VERSION and SCANNER_LOCAL_FOLDER to be able to read them in the next steps
+          echo "SCANNER_VERSION=$SCANNER_VERSION" >> $GITHUB_ENV
+          echo "SCANNER_LOCAL_FOLDER=$SCANNER_LOCAL_FOLDER" >> $GITHUB_ENV
+          mkdir -p "$SCANNER_LOCAL_FOLDER"
+          touch "$SCANNER_LOCAL_FOLDER/some_content.txt"
+      - name: Assert SCANNER_LOCAL_FOLDER exists and dummy file is in it
+        run: |
+          [ -d "$SCANNER_LOCAL_FOLDER" ] || exit 1
+          [ -f "$SCANNER_LOCAL_FOLDER/some_content.txt" ] || exit 1
+      - name: Run action with SONAR_SCANNER_TEMP
+        uses: ./
+        env:
+          NO_CACHE: true # force install-sonar-scanner-cli.sh execution
+          SONAR_SCANNER_TEMP: /tmp/sonar-scanner
+          SONAR_HOST_URL: http://not_actually_used
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+          scannerVersion: ${{ env.SCANNER_VERSION }}
+      - name: Assert SCANNER_LOCAL_FOLDER exists and dummy file is not in it
+        run: |
+          [ -d "$SCANNER_LOCAL_FOLDER" ] || exit 1
+          [ ! -f "$SCANNER_LOCAL_FOLDER/some_content.txt" ] || exit 1
+  updateTruststoreWhenPresent: # can happen in uncleaned self-hosted runners
+    name: >
+      truststore.p12 is updated when present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create SONAR_SSL_FOLDER with a file in it (not-truststore.p12)
+        run: |
+          SONAR_SSL_FOLDER=~/.sonar/ssl
+          mkdir -p "$SONAR_SSL_FOLDER"
+          touch "$SONAR_SSL_FOLDER/not-truststore.p12"
+          # emit SONAR_SSL_FOLDER to be able to read it in the next steps
+          echo "SONAR_SSL_FOLDER=$SONAR_SSL_FOLDER" >> $GITHUB_ENV
+      - name: Assert truststore.p12 does not file exists
+        run: |
+          [ ! -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+      - name: Run action with SONAR_ROOT_CERT
+        uses: ./
+        env:
+          # NO_CACHE not needed, as SONAR_SSL_FOLDER is setup when the Sonar Scanner is run, not installed 
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            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
+            -----END CERTIFICATE-----
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert not-truststore.p12 file still exists
+        run: |
+          [ -f "$SONAR_SSL_FOLDER/not-truststore.p12" ] || exit 1
+      - name: Assert truststore.p12 file now exists and take note of modification time
+        run: |
+          [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+          # emit the modification time of the truststore.p12 file to be able to read it in the next steps
+          TRUSTSTORE_P12_MOD_TIME_T1=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
+          echo "TRUSTSTORE_P12_MOD_TIME_T1=$TRUSTSTORE_P12_MOD_TIME_T1" >> $GITHUB_ENV
+      - name: Run action a second time with a different SONAR_ROOT_CERT
+        uses: ./
+        env:
+          # NO_CACHE not needed, as SONAR_SSL_FOLDER is setup when the Sonar Scanner is run, not installed 
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            MIICgTCCAeoCCQCbOlrWDdX7FTANBgkqhkiG9w0BAQUFADCBhDELMAkGA1UEBhMC
+            Tk8xGDAWBgNVBAgTD0FuZHJlYXMgU29sYmVyZzEMMAoGA1UEBxMDRm9vMRAwDgYD
+            VQQKEwdVTklORVRUMRgwFgYDVQQDEw9mZWlkZS5lcmxhbmcubm8xITAfBgkqhkiG
+            9w0BCQEWEmFuZHJlYXNAdW5pbmV0dC5ubzAeFw0wNzA2MTUxMjAxMzVaFw0wNzA4
+            MTQxMjAxMzVaMIGEMQswCQYDVQQGEwJOTzEYMBYGA1UECBMPQW5kcmVhcyBTb2xi
+            ZXJnMQwwCgYDVQQHEwNGb28xEDAOBgNVBAoTB1VOSU5FVFQxGDAWBgNVBAMTD2Zl
+            aWRlLmVybGFuZy5ubzEhMB8GCSqGSIb3DQEJARYSYW5kcmVhc0B1bmluZXR0Lm5v
+            MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDivbhR7P516x/S3BqKxupQe0LO
+            NoliupiBOesCO3SHbDrl3+q9IbfnfmE04rNuMcPsIxB161TdDpIesLCn7c8aPHIS
+            KOtPlAeTZSnb8QAu7aRjZq3+PbrP5uW3TcfCGPtKTytHOge/OlJbo078dVhXQ14d
+            1EDwXJW1rRXuUt4C8QIDAQABMA0GCSqGSIb3DQEBBQUAA4GBACDVfp86HObqY+e8
+            BUoWQ9+VMQx1ASDohBjwOsg2WykUqRXF+dLfcUH9dWR63CtZIKFDbStNomPnQz7n
+            bK+onygwBspVEbnHuUihZq3ZUdmumQqCw4Uvs/1Uvq3orOo/WJVhTyvLgFVK2Qar
+            Q4/67OZfHd7R+POBXhophSMv1ZOo
+            -----END CERTIFICATE-----
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert truststore.p12 still exists, but it has been updated, and take note of modification time
+        run: |
+          [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+          TRUSTSTORE_P12_MOD_TIME_T2=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
+          [ "$TRUSTSTORE_P12_MOD_TIME_T1" != "$TRUSTSTORE_P12_MOD_TIME_T2" ] || exit 1
+          # emit the modification time of the truststore.p12 file to be able to read it in the next steps
+          echo "TRUSTSTORE_P12_MOD_TIME_T2=$TRUSTSTORE_P12_MOD_TIME_T2" >> $GITHUB_ENV
+      - name: Remove sonar alias from truststore.p12
+        run: keytool -delete -alias sonar -keystore "$SONAR_SSL_FOLDER/truststore.p12" -storepass changeit
+      - name: Run action a third time
+        uses: ./
+        env:
+          # NO_CACHE not needed, as SONAR_SSL_FOLDER is setup when the Sonar Scanner is run, not installed 
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_ROOT_CERT: |
+            -----BEGIN CERTIFICATE-----
+            MIICgTCCAeoCCQCbOlrWDdX7FTANBgkqhkiG9w0BAQUFADCBhDELMAkGA1UEBhMC
+            Tk8xGDAWBgNVBAgTD0FuZHJlYXMgU29sYmVyZzEMMAoGA1UEBxMDRm9vMRAwDgYD
+            VQQKEwdVTklORVRUMRgwFgYDVQQDEw9mZWlkZS5lcmxhbmcubm8xITAfBgkqhkiG
+            9w0BCQEWEmFuZHJlYXNAdW5pbmV0dC5ubzAeFw0wNzA2MTUxMjAxMzVaFw0wNzA4
+            MTQxMjAxMzVaMIGEMQswCQYDVQQGEwJOTzEYMBYGA1UECBMPQW5kcmVhcyBTb2xi
+            ZXJnMQwwCgYDVQQHEwNGb28xEDAOBgNVBAoTB1VOSU5FVFQxGDAWBgNVBAMTD2Zl
+            aWRlLmVybGFuZy5ubzEhMB8GCSqGSIb3DQEJARYSYW5kcmVhc0B1bmluZXR0Lm5v
+            MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDivbhR7P516x/S3BqKxupQe0LO
+            NoliupiBOesCO3SHbDrl3+q9IbfnfmE04rNuMcPsIxB161TdDpIesLCn7c8aPHIS
+            KOtPlAeTZSnb8QAu7aRjZq3+PbrP5uW3TcfCGPtKTytHOge/OlJbo078dVhXQ14d
+            1EDwXJW1rRXuUt4C8QIDAQABMA0GCSqGSIb3DQEBBQUAA4GBACDVfp86HObqY+e8
+            BUoWQ9+VMQx1ASDohBjwOsg2WykUqRXF+dLfcUH9dWR63CtZIKFDbStNomPnQz7n
+            bK+onygwBspVEbnHuUihZq3ZUdmumQqCw4Uvs/1Uvq3orOo/WJVhTyvLgFVK2Qar
+            Q4/67OZfHd7R+POBXhophSMv1ZOo
+            -----END CERTIFICATE-----
+        with:
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+      - name: Assert truststore.p12 still exists, and it has been updated again
+        run: |
+          [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
+          TRUSTSTORE_P12_MOD_TIME_T3=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
+          [ "$TRUSTSTORE_P12_MOD_TIME_T2" != "$TRUSTSTORE_P12_MOD_TIME_T3" ] || exit 1

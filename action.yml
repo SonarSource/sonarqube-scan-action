@@ -1,19 +1,57 @@
 name: Official SonarQube Scan
+# Warning: changing name would change URL in the marketplace
 description: >
-  Scan your code with SonarQube to detect Bugs, Vulnerabilities and Code Smells in up to 27 programming languages!
+  Scan your code with SonarQube Server and Cloud to detect issues in 30+ languages. (Formerly SonarQube and SonarCloud)
+
 branding:
   icon: check
   color: green
-runs:
-  using: docker
-  image: Dockerfile
-  entrypoint: "/entrypoint.sh"
-  post-entrypoint: "/cleanup.sh"
 inputs:
   args:
-    description: Additional arguments to the sonar-scanner
+    description: Additional arguments to the Sonar Scanner CLI
     required: false
   projectBaseDir:
     description: Set the sonar.projectBaseDir analysis property
     required: false
-    default: .
+  scannerVersion:
+    description: Version of the Sonar Scanner CLI to use
+    required: false
+    # to be kept in sync with sonar-scanner-version
+    default: 7.1.0.4889
+  scannerBinariesUrl:
+    description: URL to download the Sonar Scanner CLI binaries from
+    required: false
+    default: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
+runs:
+  using: "composite"
+  steps:
+    - name: Sanity checks
+      run: ${GITHUB_ACTION_PATH}/scripts/sanity-checks.sh
+      shell: bash
+      env:
+        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
+    - name: Load Sonar Scanner CLI from cache
+      id: sonar-scanner-cli
+      uses: actions/cache@v4
+      env:
+        # The default value is 60mins. Reaching timeout is treated the same as a cache miss.
+        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
+      with:
+        path: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
+        key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
+    - name: Install Sonar Scanner CLI
+      if: ${{ env.NO_CACHE == 'true' || steps.sonar-scanner-cli.outputs.cache-hit != 'true' }}
+      run: ${GITHUB_ACTION_PATH}/scripts/install-sonar-scanner-cli.sh
+      shell: bash
+      env:
+        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
+        INPUT_SCANNERBINARIESURL: ${{ inputs.scannerBinariesUrl }}
+    - name: Add SonarScanner CLI to the PATH
+      run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
+      shell: bash
+    - name: Run SonarScanner
+      run: ${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner-cli.sh ${{ inputs.args }}
+      shell: bash
+      env:
+        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
+        SONAR_SCANNER_JRE: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/jre

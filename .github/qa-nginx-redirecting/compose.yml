@@ -1,0 +1,13 @@
+services:
+  https-proxy:
+    image: nginx
+    ports:
+      - 8080:8080
+    volumes:
+      - $GITHUB_WORKSPACE/.github/qa-nginx-redirecting/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 2m

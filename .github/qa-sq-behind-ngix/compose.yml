@@ -1,0 +1,26 @@
+services:
+  sonarqube:
+    image: sonarqube:lts-community
+    ports:
+      - 9000:9000
+    healthcheck:
+      test: 'grep -Fq "SonarQube is operational" /opt/sonarqube/logs/sonar.log'
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 2m
+
+  https-proxy:
+    image: nginx
+    ports:
+      - 4443:4443
+    volumes:
+      - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/nginx.conf:/etc/nginx/nginx.conf:ro
+      - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/server.crt:/etc/nginx/server.crt:ro
+      - $GITHUB_WORKSPACE/.github/qa-sq-behind-ngix/server.key:/etc/nginx/server.key:ro
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 2m
