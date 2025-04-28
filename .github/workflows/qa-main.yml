@@ -45,6 +45,27 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
+  argsInputInjectionTest:
+    name: >
+      'args' input
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        with:
+          args: -Dsonar.someArg=aValue -Dsonar.scanner.internal.dumpToFile=./output.properties && echo "Injection!!!"
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
   projectBaseDirInputTest:
     name: >
       'projectBaseDir' input
@@ -80,6 +101,28 @@ jobs:
         uses: ./
         with:
           scannerVersion: 6.1.0.4477
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          NO_CACHE: true # force install-sonar-scanner-cli.sh execution
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert
+        run: |
+          ./test/assertFileExists "$RUNNER_TEMP/sonarscanner/sonar-scanner-cli-6.1.0.4477-linux-x64.zip"
+  scannerVersionInjectionTest:
+    name: >
+      'scannerVersion' input
+    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with scannerVersion
+        uses: ./
+        with:
+          scannerVersion: |-
+            6.1.0.4477
+            foo
           args: -Dsonar.scanner.internal.dumpToFile=./output.properties
         env:
           NO_CACHE: true # force install-sonar-scanner-cli.sh execution
