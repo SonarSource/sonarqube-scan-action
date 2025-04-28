@@ -50,7 +50,10 @@ runs:
       run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
       shell: bash
     - name: Run SonarScanner
-      run: ${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner-cli.sh ${{ inputs.args }}
+      run: |
+        args=(${{ inputs.args }})
+        cmd=(${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner-cli.sh "${args[@]}")
+        "${cmd[@]}"
       shell: bash
       env:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
