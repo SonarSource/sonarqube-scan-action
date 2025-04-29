@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Parse semver
-        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba
+        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba # v4.3.0
         id: version
         with:
           version: ${{ github.ref_name }}
