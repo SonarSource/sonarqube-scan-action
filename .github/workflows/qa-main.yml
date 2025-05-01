@@ -809,3 +809,37 @@ jobs:
           [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
           TRUSTSTORE_P12_MOD_TIME_T3=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
           [ "$TRUSTSTORE_P12_MOD_TIME_T2" != "$TRUSTSTORE_P12_MOD_TIME_T3" ] || exit 1
+  scannerVersionValidationTest:
+    name: >
+      'scannerVersion' input validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with invalid scannerVersion
+        id: invalid_version
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerVersion: "7.1.0-SNAPSHOT"
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert failure of previous step
+        if: steps.invalid_version.outcome == 'success'
+        run: |
+          echo "Action with invalid scannerVersion should have failed but succeeded"
+          exit 1
+      - name: Run action with valid scannerVersion
+        uses: ./
+        with:
+          scannerVersion: "7.1.0.4889"
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert
+        run: |
+          ./test/assertFileExists ./output.properties

@@ -25,6 +25,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Validate Scanner Version input
+      run: |
+        SCANNER_VERSION="${{ inputs.scannerVersion }}"
+        if [[ ! "$SCANNER_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "ERROR: Invalid scannerVersion format. Expected format: x.y.z.w (e.g., 7.1.0.4889)"
+          exit 1
+        fi
+      shell: bash
     - name: Sanity checks
       run: ${GITHUB_ACTION_PATH}/scripts/sanity-checks.sh
       shell: bash
