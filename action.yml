@@ -30,6 +30,7 @@ runs:
       shell: bash
       env:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
+        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
     - name: Load Sonar Scanner CLI from cache
       id: sonar-scanner-cli
       uses: actions/cache@v4

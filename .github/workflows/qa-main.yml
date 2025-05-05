@@ -21,9 +21,11 @@ jobs:
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
-      - name: Assert
+      - name: Assert failure of previous step
+        if: steps.invalid_version.outcome == 'success'
         run: |
-          ./test/assertFileContains ./output.properties "sonar.projectBaseDir=."
+          echo "Action with invalid scannerVersion should have failed but succeeded"
+          exit 1
   argsInputTest:
     name: >
       'args' input
@@ -39,6 +41,7 @@ jobs:
         uses: ./
         with:
           args: -Dsonar.someArg=aValue -Dsonar.anotherArgWithSpaces="Another Value"
+          scannerVersion: 6.1.0.4477
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
@@ -61,6 +64,7 @@ jobs:
         uses: ./
         continue-on-error: true
         with:
+          scannerVersion: 6.1.0.4477
           args: -Dsonar.someArg=aValue && echo "Injection"
         env:
           SONAR_HOST_URL: http://not_actually_used
@@ -86,6 +90,7 @@ jobs:
       - name: Run action with projectBaseDir
         uses: ./
         with:
+          scannerVersion: 6.1.0.4477
           args: -Dsonar.scanner.internal.dumpToFile=./output.properties
           projectBaseDir: ./baseDir
         env:
@@ -809,3 +814,26 @@ jobs:
           [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
           TRUSTSTORE_P12_MOD_TIME_T3=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
           [ "$TRUSTSTORE_P12_MOD_TIME_T2" != "$TRUSTSTORE_P12_MOD_TIME_T3" ] || exit 1
+  scannerVersionValidationTest:
+    name: >
+      'scannerVersion' input validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with invalid scannerVersion
+        id: invalid_version
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerVersion: "7.1.0-SNAPSHOT"
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert failure of previous step
+        if: steps.invalid_version.outcome == 'success'
+        run: |
+          echo "Action with invalid scannerVersion should have failed but succeeded"
+          exit 1
