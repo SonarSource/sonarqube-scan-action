@@ -3,7 +3,7 @@
 set -eo pipefail
 
 if [[ ! "${INPUT_SCANNERVERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "::error title=SonarScanner::Invalid scannerVersion '${INPUT_SCANNERVERSION}'. Expected format: x.y.z.w (e.g., 7.1.0.4889)"
+  echo "::error title=SonarScanner::Invalid scannerVersion format. Expected format: x.y.z.w (e.g., 7.1.0.4889)"
   exit 1
 fi
 
