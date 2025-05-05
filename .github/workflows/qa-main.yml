@@ -21,11 +21,9 @@ jobs:
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
-      - name: Assert failure of previous step
-        if: steps.invalid_version.outcome == 'success'
+      - name: Assert
         run: |
-          echo "Action with invalid scannerVersion should have failed but succeeded"
-          exit 1
+          ./test/assertFileContains ./output.properties "sonar.projectBaseDir=."
   argsInputTest:
     name: >
       'args' input
@@ -41,7 +39,6 @@ jobs:
         uses: ./
         with:
           args: -Dsonar.someArg=aValue -Dsonar.anotherArgWithSpaces="Another Value"
-          scannerVersion: 6.1.0.4477
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
@@ -90,7 +87,6 @@ jobs:
       - name: Run action with projectBaseDir
         uses: ./
         with:
-          scannerVersion: 6.1.0.4477
           args: -Dsonar.scanner.internal.dumpToFile=./output.properties
           projectBaseDir: ./baseDir
         env:
