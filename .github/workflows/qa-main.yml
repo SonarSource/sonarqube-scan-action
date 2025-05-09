@@ -11,7 +11,7 @@ jobs:
   noInputsTest:
     name: >
       No inputs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -97,7 +97,7 @@ jobs:
   scannerVersionTest:
     name: >
       'scannerVersion' input
-    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    runs-on: ubuntu-latest-large # assumes default RUNNER_ARCH for linux is X64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -117,7 +117,7 @@ jobs:
   scannerBinariesUrlTest:
     name: >
       'scannerBinariesUrl' input with invalid URL
-    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    runs-on: ubuntu-latest-large # assumes default RUNNER_ARCH for linux is X64
     steps:
       - uses: actions/checkout@v4
         with:
@@ -145,7 +145,7 @@ jobs:
   scannerBinariesUrlIsEscapedWithWget:
     name: >
       'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -166,7 +166,7 @@ jobs:
   scannerBinariesUrlIsEscapedWithCurl:
     name: >
       'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -195,7 +195,7 @@ jobs:
   dontFailGradleTest:
     name: >
       Don't fail on Gradle project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -216,7 +216,7 @@ jobs:
   dontFailGradleKotlinTest:
     name: >
       Don't fail on Kotlin Gradle project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -237,7 +237,7 @@ jobs:
   dontFailMavenTest:
     name: >
       Don't fail on Maven project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -256,7 +256,7 @@ jobs:
         run: |
           ./test/assertFileExists ./output.properties
   runAnalysisTest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     services:
       sonarqube:
         image: sonarqube:lts-community
@@ -309,7 +309,7 @@ jobs:
         run: |
           ./test/assertFileContains ./output.properties "sonar.verbose=true"
   runAnalysisWithCacheTest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     services:
       sonarqube:
         image: sonarqube:lts-community
@@ -369,7 +369,7 @@ jobs:
           ./test/assertFileContains ./output.properties "sonar.scanner.sonarcloudUrl=mirror.sonarcloud.io" 
   dontFailWhenMissingWgetButCurlAvailable:
     name: Don't fail when missing wget but curl available
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -395,7 +395,7 @@ jobs:
           ./test/assertFileExists ./output.properties
   dontFailWhenMissingCurlButWgetAvailable:
     name: Don't fail when missing curl but wget available
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -422,7 +422,7 @@ jobs:
           ./test/assertFileExists ./output.properties
   failWhenBothWgetAndCurlMissing:
     name: Fail when both wget and curl are missing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -455,7 +455,7 @@ jobs:
   curlPerformsRedirect:
     name: >
       curl performs redirect when scannerBinariesUrl returns 3xx
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -541,7 +541,7 @@ jobs:
   analysisWithSslCertificate:
     name: >
       Analysis takes into account 'SONAR_ROOT_CERT'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -649,7 +649,7 @@ jobs:
   overridesScannerLocalFolderWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
       'SCANNER_LOCAL_FOLDER' is cleaned with warning when present
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -683,7 +683,7 @@ jobs:
   updateTruststoreWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
       truststore.p12 is updated when present
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -812,7 +812,7 @@ jobs:
   scannerVersionValidationTest:
     name: >
       'scannerVersion' input validation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
