@@ -10,7 +10,7 @@ on:
 jobs:
   create-install-dir-test:
     name: create_install_path.sh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -107,7 +107,7 @@ jobs:
           grep "=== Script failed ===" output
   setup-script-test:
     name: configure_paths.sh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     env:
       INSTALL_PATH: 'install-directory'
       SONAR_HOST_URL: 'http://sonar-host.com'
@@ -250,7 +250,7 @@ jobs:
           grep "=== Script failed ===" output
   download-script-test:
     name: download.sh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
@@ -319,7 +319,7 @@ jobs:
           grep "=== Script failed ===" output
   fetch-latest-version-test:
     name: fetch_latest_version.sh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - uses: actions/checkout@v4
         with:
