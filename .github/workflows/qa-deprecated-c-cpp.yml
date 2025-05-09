@@ -12,7 +12,7 @@ jobs:
     name: Action outputs
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-13]
+        os: [ubuntu-latest-large, windows-latest-large, macos-latest, macos-13]
         cache: [true, false]
         include:
           - arch: X64
