@@ -11,12 +11,15 @@ jobs:
   noInputsTest:
     name: >
       No inputs
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run action with args
+      - name: Run action without args
         uses: ./
         env:
           SONAR_HOST_URL: http://not_actually_used

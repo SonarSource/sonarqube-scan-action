@@ -77,5 +77,5 @@ scanner_args+=("$@")
 
 set -ux
 
-$SCANNER_BIN "${scanner_args[@]}"
+$SCANNER_BIN ${scanner_args[@]+"${scanner_args[@]}"}
 
