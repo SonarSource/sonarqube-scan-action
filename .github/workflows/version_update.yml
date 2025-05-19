@@ -7,7 +7,7 @@ on:
 jobs:
   check-version:
     name: Check for sonar-scanner version update
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     outputs:
       should_update: ${{ steps.version-check.outputs.should_update }}
       latest_version: ${{ steps.latest-version.outputs.latest }}
@@ -45,7 +45,7 @@ jobs:
   update-version:
     name: Prepare pull request for sonar-scanner version update
     needs: check-version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     permissions:
       contents: write
       pull-requests: write
