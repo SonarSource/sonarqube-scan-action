@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [[ ${ARCH} != "X64" && ! (${ARCH} == "ARM64" && (${OS} == "macOS" || ${OS} == "Linux")) ]]; then
   echo "::error::Architecture '${ARCH}' is unsupported by build-wrapper"

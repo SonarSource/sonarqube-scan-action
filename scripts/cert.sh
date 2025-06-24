@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [[ -n "${SONAR_ROOT_CERT}" ]]; then
   echo "Adding custom root certificate to java certificate store"
