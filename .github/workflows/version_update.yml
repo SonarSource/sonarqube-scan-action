@@ -10,14 +10,12 @@ jobs:
     runs-on: ubuntu-latest-large
     outputs:
       should_update: ${{ steps.version-check.outputs.should_update }}
-      latest_version: ${{ steps.latest-version.outputs.latest }}
+      new-version: ${{ steps.latest-version.outputs.sonar-scanner-version }}
     steps:
       - run: sudo apt install -y jq
-      - run: sudo snap install yq
       - uses: actions/checkout@v4
         with:
           ref: master
-          persist-credentials: true
           fetch-depth: 0
 
       - name: "Fetch currently used sonar-scanner version"
@@ -30,13 +28,13 @@ jobs:
         shell: bash
         run: |
           ./scripts/fetch_latest_version.sh > sonar-scanner-version
-          echo "latest=$(cat sonar-scanner-version)" >> $GITHUB_OUTPUT
+          cat sonar-scanner-version >> $GITHUB_OUTPUT
 
       - name: "Determine if update is needed"
         id: version-check
         shell: bash
         run: |
-          if [[ "${{ steps.tagged-version.outputs.sonar-scanner-version }}" != "${{ steps.latest-version.outputs.latest }}" ]]; then
+          if [[ "${{ steps.tagged-version.outputs.sonar-scanner-version }}" != "${{ steps.latest-version.outputs.sonar-scanner-version }}" ]]; then
             echo "should_update=true" >> $GITHUB_OUTPUT
           else
             echo "should_update=false" >> $GITHUB_OUTPUT
@@ -51,17 +49,24 @@ jobs:
       pull-requests: write
     if: needs.check-version.outputs.should_update == 'true'
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          persist-credentials: true
+          fetch-depth: 0
+      - run: sudo snap install yq
       - name: "Update default version"
         shell: bash
         env:
-          NEW_VERSION: ${{ needs.check-version.outputs.latest-version }}
+          NEW_VERSION: ${{ needs.check-version.outputs.new-version }}
         run: |
-           yq -i '.inputs.scannerVersion.default = strenv(NEW_VERSION)' action.yml
+          yq -i '.inputs.scannerVersion.default = strenv(NEW_VERSION)' action.yml
+          ./scripts/fetch_latest_version.sh > sonar-scanner-version
       - name: "Create Pull Request for version update"
         shell: bash
         env:
-          UPDATE_BRANCH: update-to-sonar-scanner-${{ needs.check-version.outputs.latest-version }}
-          TITLE: "Update SonarScanner CLI to ${{ needs.check-version.outputs.latest-version }}"
+          UPDATE_BRANCH: update-to-sonar-scanner-${{ needs.check-version.outputs.new-version }}
+          TITLE: "Update SonarScanner CLI to ${{ needs.check-version.outputs.new-version }}"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "SonarTech"
@@ -74,5 +79,5 @@ jobs:
           gh pr list
 
           if [[ $(gh pr list -H "${UPDATE_BRANCH}" | grep "${UPDATE_BRANCH}" | wc -l) -eq 0 ]]; then
-            gh pr create -B master -H ${UPDATE_BRANCH} --title "${TITLE}" --body "Automatic updated of sonar-scanner version value. Needs to be tagged for release."
+            gh pr create -B master -H ${UPDATE_BRANCH} --title "${TITLE}" --body "Automatic update of the sonar-scanner version value. Be sure to trigger the QA workflow by closing and reopening this PR (see https://github.com/orgs/community/discussions/65321)."
           fi
