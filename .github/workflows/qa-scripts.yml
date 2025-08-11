@@ -12,7 +12,7 @@ jobs:
     name: create_install_path.sh
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
@@ -123,7 +123,7 @@ jobs:
       SONAR_SCANNER_URL_MACOSX_AARCH64: 'https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-vX.Y.Z.MMMM-macosx-aarch64.zip'
       SONAR_SCANNER_SHA_MACOSX_AARCH64: 'DOWNLOAD-SHA-MACOSX-AARCH64'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
@@ -252,7 +252,7 @@ jobs:
     name: download.sh
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
 
@@ -321,7 +321,7 @@ jobs:
     name: fetch_latest_version.sh
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
       - name: Test script
