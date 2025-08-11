@@ -16,7 +16,7 @@ jobs:
         os: [ ubuntu-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action without args
@@ -35,7 +35,7 @@ jobs:
         os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -57,7 +57,7 @@ jobs:
         os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -82,7 +82,7 @@ jobs:
         os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: mkdir -p ./baseDir
@@ -102,7 +102,7 @@ jobs:
       'scannerVersion' input
     runs-on: ubuntu-latest-large # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerVersion
@@ -122,7 +122,7 @@ jobs:
       'scannerBinariesUrl' input with invalid URL
     runs-on: ubuntu-latest-large # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -150,7 +150,7 @@ jobs:
       'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -171,7 +171,7 @@ jobs:
       'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -200,7 +200,7 @@ jobs:
       Don't fail on Gradle project
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Gradle project
@@ -221,7 +221,7 @@ jobs:
       Don't fail on Kotlin Gradle project
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Kotlin Gradle project
@@ -242,7 +242,7 @@ jobs:
       Don't fail on Maven project
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Maven project
@@ -275,7 +275,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on sample project
@@ -297,7 +297,7 @@ jobs:
         os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with debug mode
@@ -328,7 +328,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: SonarQube Cache
@@ -356,7 +356,7 @@ jobs:
         os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SONARCLOUD_URL
@@ -374,7 +374,7 @@ jobs:
     name: Don't fail when missing wget but curl available
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -400,7 +400,7 @@ jobs:
     name: Don't fail when missing curl but wget available
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove curl
@@ -427,7 +427,7 @@ jobs:
     name: Fail when both wget and curl are missing
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget and curl
@@ -460,7 +460,7 @@ jobs:
       curl performs redirect when scannerBinariesUrl returns 3xx
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -495,7 +495,7 @@ jobs:
         os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SSL certificate
@@ -546,7 +546,7 @@ jobs:
       Analysis takes into account 'SONAR_ROOT_CERT'
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate server certificate
@@ -654,7 +654,7 @@ jobs:
       'SCANNER_LOCAL_FOLDER' is cleaned with warning when present
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create a dummy SCANNER_LOCAL_FOLDER with dummy content in it
@@ -688,7 +688,7 @@ jobs:
       truststore.p12 is updated when present
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create SONAR_SSL_FOLDER with a file in it (not-truststore.p12)
@@ -817,7 +817,7 @@ jobs:
       'scannerVersion' input validation
     runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with invalid scannerVersion

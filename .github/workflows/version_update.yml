@@ -13,7 +13,7 @@ jobs:
       new-version: ${{ steps.latest-version.outputs.sonar-scanner-version }}
     steps:
       - run: sudo apt install -y jq
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: master
           fetch-depth: 0
@@ -49,7 +49,7 @@ jobs:
       pull-requests: write
     if: needs.check-version.outputs.should_update == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: master
           persist-credentials: true
