@@ -53,8 +53,7 @@ runs:
     - name: Run SonarScanner
       run: |
         args=(${{ inputs.args }})
-        cmd=(${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner-cli.sh "${args[@]}")
-        "${cmd[@]}"
+        "${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner-cli.sh" "${args[@]}"
       shell: bash
       env:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
