@@ -28,7 +28,7 @@ parse_arguments() {
 }
 
 verify_download_correctness() {
-  echo "${EXPECTED_SHA} ${TMP_ZIP_PATH}" | sha256sum -c
+  echo "${EXPECTED_SHA} ${TMP_ZIP_PATH}" | sha256sum -c -
   check_status "Checking sha256 failed"
 }
 
