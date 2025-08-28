@@ -73,7 +73,17 @@ if [[ -n "${SONAR_ROOT_CERT}" ]]; then
   scanner_args+=("-Dsonar.scanner.truststorePassword=$SONAR_SSL_TRUSTSTORE_PASSWORD")
 fi
 
-scanner_args+=("$@")
+# split input args correctly (passed through INPUT_ARGS env var to avoid execution of injected command)
+args=()
+if [[ -n "${INPUT_ARGS}" ]]; then
+#  the regex recognizes args with values in single or double quotes (without character escaping), and args without quotes as well
+#  more specifically, the following patterns: -Darg="value", -Darg='value', -Darg=value, "-Darg=value" and '-Darg=value'
+  IFS=$'\n'; args=($(echo ${INPUT_ARGS} | egrep -o '[^" '\'']+="[^"]*"|[^" '\'']+='\''[^'\'']*'\''|[^" '\'']+|"[^"]+"|'\''[^'\'']+'\'''))
+fi
+
+for arg in "${args[@]}"; do
+  scanner_args+=("$arg")
+done
 
 set -ux
 
