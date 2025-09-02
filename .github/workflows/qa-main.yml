@@ -41,17 +41,44 @@ jobs:
       - name: Run action with args
         uses: ./
         with:
-          args: -Dsonar.someArg=aValue -Dsonar.anotherArgWithSpaces="Another Value"
+          args: -Dsonar.someArg=aValue -Dsonar.anotherArgWithSpaces="Another Value" -Dsonar.argWithSingleQuotes='Another Value'
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
       - name: Assert
         run: |
           ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
-          ./test/assertFileContains ./output.properties "sonar.anotherArgWithSpaces=Another Value"
+          ./test/assertFileContains ./output.properties 'sonar.anotherArgWithSpaces="Another Value"'
+          ./test/assertFileContains ./output.properties "sonar.argWithSingleQuotes='Another Value'"
   argsInputInjectionTest:
     name: >
       'args' input with command injection will fail
+    strategy:
+      matrix:
+        os: [ github-ubuntu-latest-s, github-windows-latest-s, macos-latest ]
+        args: [ -Dsonar.someArg=aValue && echo "Injection", -Dsonar.someArg="value\"; whoami; echo \"" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: ${{ matrix.args }}
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Fail if action succeeded
+        if: steps.runTest.outcome == 'success'
+        run: exit 1
+      - name: Assert the scanner was not called
+        run: |
+          ./test/assertFileDoesntExist ./output.properties
+  backtickCommandInjectionTest:
+    name: >
+      'args' input with backticks injection does not execute command
     strategy:
       matrix:
         os: [ github-ubuntu-latest-s, github-windows-latest-s, macos-latest ]
@@ -64,16 +91,76 @@ jobs:
         uses: ./
         continue-on-error: true
         with:
-          args: -Dsonar.someArg=aValue && echo "Injection"
+          args: >
+            -Dsonar.arg1="refs/heads/branch: [workflows] Bump `actions/*`" -Dsonar.arg2="test `echo Command Injection`" -Dsonar.arg3="`id`" -Dsonar.arg4="test'; `echo injection`; echo '" -Dsonar.arg5="   `whoami`   " -Dsonar.arg6="test\`echo injection\`test"
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
-      - name: Fail if action succeeded
-        if: steps.runTest.outcome == 'success'
-        run: exit 1
-      - name: Assert the scanner was not called
+      - name: Assert command in arg is not executed
         run: |
-          ./test/assertFileDoesntExist ./output.properties
+          ./test/assertFileContains ./output.properties 'sonar.arg1="refs/heads/branch\\: \[workflows\] Bump `actions/\*`"'
+          ./test/assertFileContains ./output.properties 'sonar.arg2="test `echo Command Injection`"'
+          ./test/assertFileContains ./output.properties 'sonar.arg3="`id`"'
+          ./test/assertFileContains ./output.properties "sonar.arg4=\"test'; \`echo injection\`; echo '\""
+          ./test/assertFileContains ./output.properties 'sonar.arg5="   `whoami`   "'
+          ./test/assertFileContains ./output.properties 'sonar.arg6="test\\\\`echo injection\\\\`test"'
+  dollarSymbolCommandInjectionTest:
+    name: >
+      'args' input with dollar command injection does not execute command
+    strategy:
+      matrix:
+        os: [ github-ubuntu-latest-s, github-windows-latest-s, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: -Dsonar.arg1="$(whoami)" -Dsonar.arg2="$GITHUB_TOKEN" -Dsonar.arg3="$(echo outer $(echo inner))" -Dsonar.arg4="value\$(whoami)end" -Dsonar.arg5="$(printf 'A%.0s' {1..10000})" -Dsonar.arg6='value"; $(whoami); echo "'
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert command in arg is not executed
+        run: |
+          ./test/assertFileContains ./output.properties 'sonar.arg1="$(whoami)"'
+          ./test/assertFileContains ./output.properties 'sonar.arg2="$GITHUB_TOKEN"'
+          ./test/assertFileContains ./output.properties 'sonar.arg3="$(echo outer $(echo inner))"'
+          ./test/assertFileContains ./output.properties 'sonar.arg4="value\\\\$(whoami)end"'
+          ./test/assertFileContains ./output.properties 'sonar.arg5="$(printf '\''A%.0s'\'' {1..10000})"'
+          ./test/assertFileContains ./output.properties 'sonar.arg6='\''value"; $(whoami); echo "'\'''
+  otherCommandInjectionVariantsTest:
+    name: >
+      'args' input with other command injection variants does not execute command
+    strategy:
+      matrix:
+        os: [ github-ubuntu-latest-s, github-windows-latest-s, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: -Dsonar.arg1="test | base64" -Dsonar.arg2="value; whoami" -Dsonar.arg3="value && echo test" -Dsonar.arg4="value > /tmp/output.txt" -Dsonar.arg5="< /etc/passwd" -Dsonar.arg6="" -Dsonar.arg7="../../../*" -Dsonar.arg8="*.key" -Dsonar.arg9="test\u0027\u0060whoami\u0060"
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert command in arg is not executed
+        run: |
+          ./test/assertFileContains ./output.properties 'sonar.arg1="test | base64"'
+          ./test/assertFileContains ./output.properties 'sonar.arg2="value; whoami"'
+          ./test/assertFileContains ./output.properties 'sonar.arg3="value && echo test"'
+          ./test/assertFileContains ./output.properties 'sonar.arg4="value > /tmp/output.txt"'
+          ./test/assertFileContains ./output.properties 'sonar.arg5="< /etc/passwd"'
+          ./test/assertFileContains ./output.properties 'sonar.arg6=""'
+          ./test/assertFileContains ./output.properties 'sonar.arg7="../../../\*"'
+          ./test/assertFileContains ./output.properties 'sonar.arg8="\*.key"'
+          ./test/assertFileContains ./output.properties 'sonar.arg9="test\\\\u0027\\\\u0060whoami\\\\u0060"'
   projectBaseDirInputTest:
     name: >
       'projectBaseDir' input
