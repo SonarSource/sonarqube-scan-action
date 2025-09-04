@@ -11,12 +11,15 @@ jobs:
   noInputsTest:
     name: >
       No inputs
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest-large, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run action with args
+      - name: Run action without args
         uses: ./
         env:
           SONAR_HOST_URL: http://not_actually_used
@@ -29,31 +32,144 @@ jobs:
       'args' input
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
         uses: ./
         with:
-          args: -Dsonar.someArg=aValue -Dsonar.scanner.internal.dumpToFile=./output.properties
+          args: -Dsonar.someArg=aValue -Dsonar.anotherArgWithSpaces="Another Value" -Dsonar.argWithSingleQuotes='Another Value'
         env:
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
       - name: Assert
         run: |
           ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
+          ./test/assertFileContains ./output.properties 'sonar.anotherArgWithSpaces="Another Value"'
+          ./test/assertFileContains ./output.properties "sonar.argWithSingleQuotes='Another Value'"
+  argsInputInjectionTest:
+    name: >
+      'args' input with command injection will fail
+    strategy:
+      matrix:
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
+        args: [ -Dsonar.someArg=aValue && echo "Injection", -Dsonar.someArg="value\"; whoami; echo \"" ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: ${{ matrix.args }}
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Fail if action succeeded
+        if: steps.runTest.outcome == 'success'
+        run: exit 1
+      - name: Assert the scanner was not called
+        run: |
+          ./test/assertFileDoesntExist ./output.properties
+  backtickCommandInjectionTest:
+    name: >
+      'args' input with backticks injection does not execute command
+    strategy:
+      matrix:
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: >
+            -Dsonar.arg1="refs/heads/branch: [workflows] Bump `actions/*`" -Dsonar.arg2="test `echo Command Injection`" -Dsonar.arg3="`id`" -Dsonar.arg4="test'; `echo injection`; echo '" -Dsonar.arg5="   `whoami`   " -Dsonar.arg6="test\`echo injection\`test"
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert command in arg is not executed
+        run: |
+          ./test/assertFileContains ./output.properties 'sonar.arg1="refs/heads/branch\\: \[workflows\] Bump `actions/\*`"'
+          ./test/assertFileContains ./output.properties 'sonar.arg2="test `echo Command Injection`"'
+          ./test/assertFileContains ./output.properties 'sonar.arg3="`id`"'
+          ./test/assertFileContains ./output.properties "sonar.arg4=\"test'; \`echo injection\`; echo '\""
+          ./test/assertFileContains ./output.properties 'sonar.arg5="   `whoami`   "'
+          ./test/assertFileContains ./output.properties 'sonar.arg6="test\\\\`echo injection\\\\`test"'
+  dollarSymbolCommandInjectionTest:
+    name: >
+      'args' input with dollar command injection does not execute command
+    strategy:
+      matrix:
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: -Dsonar.arg1="$(whoami)" -Dsonar.arg2="$GITHUB_TOKEN" -Dsonar.arg3="$(echo outer $(echo inner))" -Dsonar.arg4="value\$(whoami)end" -Dsonar.arg5="$(printf 'A%.0s' {1..10000})" -Dsonar.arg6='value"; $(whoami); echo "'
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert command in arg is not executed
+        run: |
+          ./test/assertFileContains ./output.properties 'sonar.arg1="$(whoami)"'
+          ./test/assertFileContains ./output.properties 'sonar.arg2="$GITHUB_TOKEN"'
+          ./test/assertFileContains ./output.properties 'sonar.arg3="$(echo outer $(echo inner))"'
+          ./test/assertFileContains ./output.properties 'sonar.arg4="value\\\\$(whoami)end"'
+          ./test/assertFileContains ./output.properties 'sonar.arg5="$(printf '\''A%.0s'\'' {1..10000})"'
+          ./test/assertFileContains ./output.properties 'sonar.arg6='\''value"; $(whoami); echo "'\'''
+  otherCommandInjectionVariantsTest:
+    name: >
+      'args' input with other command injection variants does not execute command
+    strategy:
+      matrix:
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with args
+        uses: ./
+        continue-on-error: true
+        with:
+          args: -Dsonar.arg1="test | base64" -Dsonar.arg2="value; whoami" -Dsonar.arg3="value && echo test" -Dsonar.arg4="value > /tmp/output.txt" -Dsonar.arg5="< /etc/passwd" -Dsonar.arg6="" -Dsonar.arg7="../../../*" -Dsonar.arg8="*.key" -Dsonar.arg9="test\u0027\u0060whoami\u0060"
+        env:
+          SONAR_HOST_URL: http://not_actually_used
+          SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
+      - name: Assert command in arg is not executed
+        run: |
+          ./test/assertFileContains ./output.properties 'sonar.arg1="test | base64"'
+          ./test/assertFileContains ./output.properties 'sonar.arg2="value; whoami"'
+          ./test/assertFileContains ./output.properties 'sonar.arg3="value && echo test"'
+          ./test/assertFileContains ./output.properties 'sonar.arg4="value > /tmp/output.txt"'
+          ./test/assertFileContains ./output.properties 'sonar.arg5="< /etc/passwd"'
+          ./test/assertFileContains ./output.properties 'sonar.arg6=""'
+          ./test/assertFileContains ./output.properties 'sonar.arg7="../../../\*"'
+          ./test/assertFileContains ./output.properties 'sonar.arg8="\*.key"'
+          ./test/assertFileContains ./output.properties 'sonar.arg9="test\\\\u0027\\\\u0060whoami\\\\u0060"'
   projectBaseDirInputTest:
     name: >
       'projectBaseDir' input
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: mkdir -p ./baseDir
@@ -71,9 +187,9 @@ jobs:
   scannerVersionTest:
     name: >
       'scannerVersion' input
-    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    runs-on: ubuntu-latest-large # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerVersion
@@ -91,9 +207,9 @@ jobs:
   scannerBinariesUrlTest:
     name: >
       'scannerBinariesUrl' input with invalid URL
-    runs-on: ubuntu-latest # assumes default RUNNER_ARCH for linux is X64
+    runs-on: ubuntu-latest-large # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -119,9 +235,9 @@ jobs:
   scannerBinariesUrlIsEscapedWithWget:
     name: >
       'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -140,9 +256,9 @@ jobs:
   scannerBinariesUrlIsEscapedWithCurl:
     name: >
       'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -169,9 +285,9 @@ jobs:
   dontFailGradleTest:
     name: >
       Don't fail on Gradle project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Gradle project
@@ -190,9 +306,9 @@ jobs:
   dontFailGradleKotlinTest:
     name: >
       Don't fail on Kotlin Gradle project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Kotlin Gradle project
@@ -211,9 +327,9 @@ jobs:
   dontFailMavenTest:
     name: >
       Don't fail on Maven project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Maven project
@@ -230,7 +346,7 @@ jobs:
         run: |
           ./test/assertFileExists ./output.properties
   runAnalysisTest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     services:
       sonarqube:
         image: sonarqube:lts-community
@@ -246,7 +362,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on sample project
@@ -265,10 +381,10 @@ jobs:
       'RUNNER_DEBUG' is used
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with debug mode
@@ -283,7 +399,7 @@ jobs:
         run: |
           ./test/assertFileContains ./output.properties "sonar.verbose=true"
   runAnalysisWithCacheTest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     services:
       sonarqube:
         image: sonarqube:lts-community
@@ -299,7 +415,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: SonarQube Cache
@@ -324,10 +440,10 @@ jobs:
       'SONARCLOUD_URL' is used
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SONARCLOUD_URL
@@ -343,9 +459,9 @@ jobs:
           ./test/assertFileContains ./output.properties "sonar.scanner.sonarcloudUrl=mirror.sonarcloud.io" 
   dontFailWhenMissingWgetButCurlAvailable:
     name: Don't fail when missing wget but curl available
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -369,9 +485,9 @@ jobs:
           ./test/assertFileExists ./output.properties
   dontFailWhenMissingCurlButWgetAvailable:
     name: Don't fail when missing curl but wget available
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove curl
@@ -396,9 +512,9 @@ jobs:
           ./test/assertFileExists ./output.properties
   failWhenBothWgetAndCurlMissing:
     name: Fail when both wget and curl are missing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget and curl
@@ -429,9 +545,9 @@ jobs:
   curlPerformsRedirect:
     name: >
       curl performs redirect when scannerBinariesUrl returns 3xx
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -463,10 +579,10 @@ jobs:
       'SONAR_ROOT_CERT' is converted to truststore
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ ubuntu-latest-large, windows-latest-large, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SSL certificate
@@ -515,9 +631,9 @@ jobs:
   analysisWithSslCertificate:
     name: >
       Analysis takes into account 'SONAR_ROOT_CERT'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate server certificate
@@ -623,9 +739,9 @@ jobs:
   overridesScannerLocalFolderWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
       'SCANNER_LOCAL_FOLDER' is cleaned with warning when present
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create a dummy SCANNER_LOCAL_FOLDER with dummy content in it
@@ -657,9 +773,9 @@ jobs:
   updateTruststoreWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
       truststore.p12 is updated when present
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create SONAR_SSL_FOLDER with a file in it (not-truststore.p12)
@@ -783,3 +899,26 @@ jobs:
           [ -f "$SONAR_SSL_FOLDER/truststore.p12" ] || exit 1
           TRUSTSTORE_P12_MOD_TIME_T3=$(stat -c %Y "$SONAR_SSL_FOLDER/truststore.p12")
           [ "$TRUSTSTORE_P12_MOD_TIME_T2" != "$TRUSTSTORE_P12_MOD_TIME_T3" ] || exit 1
+  scannerVersionValidationTest:
+    name: >
+      'scannerVersion' input validation
+    runs-on: ubuntu-latest-large
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run action with invalid scannerVersion
+        id: invalid_version
+        uses: ./
+        continue-on-error: true
+        with:
+          scannerVersion: "7.1.0-SNAPSHOT"
+          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
+        env:
+          NO_CACHE: true
+          SONAR_HOST_URL: http://not_actually_used
+      - name: Assert failure of previous step
+        if: steps.invalid_version.outcome == 'success'
+        run: |
+          echo "Action with invalid scannerVersion should have failed but succeeded"
+          exit 1

@@ -1,8 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -eou pipefail
 
 error() { echo -e "\\e[31m✗ $*\\e[0m"; }
 
-if [ ! -f $1 ]; then
+if [ ! -f "$1" ]; then
   error "File '$1' not found"
   exit 1
 fi

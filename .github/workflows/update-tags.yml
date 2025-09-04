@@ -7,16 +7,16 @@ on:
 
 jobs:
   generate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     permissions:
       contents: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Parse semver
-        uses: madhead/semver-utils@v4
+        uses: madhead/semver-utils@36d1e0ed361bd7b4b77665de8093092eaeabe6ba # v4.3.0
         id: version
         with:
           version: ${{ github.ref_name }}
