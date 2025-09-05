@@ -12,6 +12,7 @@ jobs:
     name: >
       No inputs
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -31,6 +32,7 @@ jobs:
     name: >
       'args' input
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -54,6 +56,7 @@ jobs:
     name: >
       'args' input with command injection will fail
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
         args:
@@ -85,6 +88,7 @@ jobs:
     name: >
       'args' input with backticks injection does not execute command
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -389,6 +393,7 @@ jobs:
     name: >
       'RUNNER_DEBUG' is used
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -448,6 +453,7 @@ jobs:
     name: >
       'SONARCLOUD_URL' is used
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -510,6 +516,7 @@ jobs:
     name: >
       'SONAR_ROOT_CERT' is converted to truststore
     strategy:
+      fail-fast: false
       matrix:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
