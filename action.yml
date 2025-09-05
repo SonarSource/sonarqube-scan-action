@@ -51,9 +51,12 @@ runs:
       run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
       shell: bash
     - name: Run SonarScanner
-      run: ${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner.sh
-      shell: bash
+      uses: satackey/action-js-inline@v0.0.2
+      with:
+        script: |
+          const core = require('@actions/core')
+          const exec = require('@actions/exec')
+          
+          exec.exec('sonar-scanner.bat ' + core.getInput('args'));
       env:
         INPUT_ARGS: ${{ inputs.args }}
-        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
-        SONAR_SCANNER_JRE: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/jre
