@@ -56,11 +56,11 @@ runs:
         script: |
           const core = require('@actions/core')
           const exec = require('@actions/exec')
-          const argStringToArray = require("@actions/exec/lib/toolrunner");
+          const toolrunner = require("@actions/exec/lib/toolrunner");
           
           const IS_WINDOWS = process.platform === 'win32'
           
-          var args = argStringToArray(core.getInput('args'));
+          var args = toolrunner.argStringToArray(core.getInput('args'));
           
           exec.exec(IS_WINDOWS ? 'sonar-scanner.bat' : 'sonar-scanner', args);
       env:
