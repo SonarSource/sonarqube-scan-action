@@ -58,8 +58,10 @@ runs:
           const exec = require('@actions/exec')
           const argStringToArray = require("@actions/exec/lib/toolrunner");
           
+          const IS_WINDOWS = process.platform === 'win32'
+          
           var args = argStringToArray(core.getInput('args'));
           
-          exec.exec('sonar-scanner.bat', args);
+          exec.exec(IS_WINDOWS ? 'sonar-scanner.bat' : 'sonar-scanner', args);
       env:
         INPUT_ARGS: ${{ inputs.args }}
