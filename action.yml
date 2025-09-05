@@ -53,16 +53,17 @@ runs:
     - name: Run SonarScanner
       uses: satackey/action-js-inline@v0.0.2
       with:
+        required-packages: "string-argv"
         script: |
           const core = require('@actions/core')
           const exec = require('@actions/exec')
-          const toolrunner = require("@actions/exec/lib/toolrunner");
+          const { parseArgsStringToArgv } = require('string-argv');
           
           const IS_WINDOWS = process.platform === 'win32'
           const runnerTemp = process.env.RUNNER_TEMP
           
-          var args = toolrunner.argStringToArray(core.getInput('args'));
+          var args = parseArgsStringToArgv(core.getInput('args'));
           
-          exec.exec(IS_WINDOWS ? runnerTemp + '/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin/sonar-scanner.bat' : 'sonar-scanner', args);
+          exec.exec(IS_WINDOWS ? 'sonar-scanner.bat' : 'sonar-scanner', args);
       env:
         INPUT_ARGS: ${{ inputs.args }}
