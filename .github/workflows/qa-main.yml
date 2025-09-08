@@ -50,8 +50,8 @@ jobs:
       - name: Assert
         run: |
           ./test/assertFileContains ./output.properties "sonar.someArg=aValue"
-          ./test/assertFileContains ./output.properties 'sonar.anotherArgWithSpaces="Another Value"'
-          ./test/assertFileContains ./output.properties "sonar.argWithSingleQuotes='Another Value'"
+          ./test/assertFileContains ./output.properties "sonar.anotherArgWithSpaces=Another Value"
+          ./test/assertFileContains ./output.properties "sonar.argWithSingleQuotes=Another Value"
   argsInputInjectionTest:
     name: >
       'args' input with command injection will fail
