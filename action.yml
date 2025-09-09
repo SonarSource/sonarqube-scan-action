@@ -30,32 +30,14 @@ runs:
     #   with:
     #     ref: "jay/js-rewrite"
 
-    - name: Sanity checks
+    - name: Sanity checks & setup
       run: node ./dist/index.js
       shell: bash
       env:
         INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
         INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
-
-    - name: Load Sonar Scanner CLI from cache
-      id: sonar-scanner-cli
-      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 #v4.2.4
-      env:
-        # The default value is 60mins. Reaching timeout is treated the same as a cache miss.
-        SEGMENT_DOWNLOAD_TIMEOUT_MINS: 1
-      with:
-        path: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
-        key: sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}
-    - name: Install Sonar Scanner CLI
-      if: ${{ env.NO_CACHE == 'true' || steps.sonar-scanner-cli.outputs.cache-hit != 'true' }}
-      run: ${GITHUB_ACTION_PATH}/scripts/install-sonar-scanner-cli.sh
-      shell: bash
-      env:
-        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
         INPUT_SCANNERBINARIESURL: ${{ inputs.scannerBinariesUrl }}
-    - name: Add SonarScanner CLI to the PATH
-      run: echo "${RUNNER_TEMP}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/bin" >> $GITHUB_PATH
-      shell: bash
+
     - name: Run SonarScanner
       run: ${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner.sh
       shell: bash

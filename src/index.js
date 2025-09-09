@@ -1,19 +1,28 @@
 import * as core from "@actions/core";
+import * as tc from "@actions/tool-cache";
+import * as os from "os";
+import * as path from "path";
 import {
   checkGradleProject,
   checkMavenProject,
   checkSonarToken,
   validateScannerVersion,
 } from "./sanity-checks";
+import {
+  getPlatformFlavor,
+  getScannerDownloadURL,
+  scannerDirName,
+} from "./utils";
+
+const TOOLNAME = "sonar-scanner-cli";
 
 function getInputs() {
   //FIXME: should not rely on ENV vars
   const scannerVersion = process.env.INPUT_SCANNERVERSION; // core.getInput("scannerVersion");
   const projectBaseDir = process.env.INPUT_PROJECTBASEDIR; // core.getInput("projectBaseDir") || ".";
+  const scannerBinariesUrl = process.env.INPUT_SCANNERBINARIESURL; // core.getInput("scannerBinariesUrl");
 
-  console.log("scannerVersion: ", scannerVersion);
-
-  return { scannerVersion, projectBaseDir };
+  return { scannerVersion, projectBaseDir, scannerBinariesUrl };
 }
 
 function runSanityChecks(inputs) {
@@ -30,10 +39,62 @@ function runSanityChecks(inputs) {
   }
 }
 
-function run() {
-  const inputs = getInputs();
+async function installSonarScannerCLI(scannerVersion, scannerBinariesUrl) {
+  const flavor = getPlatformFlavor(os.platform(), os.arch());
 
-  runSanityChecks(inputs);
+  // Check if tool is already cached
+  let toolDir = tc.find(TOOLNAME, scannerVersion, flavor);
+
+  if (!toolDir) {
+    console.log(
+      `Installing Sonar Scanner CLI ${scannerVersion} for ${flavor}...`
+    );
+
+    const downloadUrl = getScannerDownloadURL({
+      scannerBinariesUrl,
+      scannerVersion,
+      flavor,
+    });
+
+    console.log(`Downloading from: ${downloadUrl}`);
+
+    const downloadPath = await tc.downloadTool(downloadUrl);
+    const extractedPath = await tc.extractZip(downloadPath);
+
+    // Find the actual scanner directory inside the extracted folder
+    const scannerPath = path.join(
+      extractedPath,
+      scannerDirName(scannerVersion, flavor)
+    );
+
+    toolDir = await tc.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
+
+    console.log(`Sonar Scanner CLI cached to: ${toolDir}`);
+  } else {
+    console.log(`Using cached Sonar Scanner CLI from: ${toolDir}`);
+  }
+
+  // Add the bin directory to PATH
+  const binDir = path.join(toolDir, "bin");
+  core.addPath(binDir);
+
+  return toolDir;
+}
+
+async function run() {
+  try {
+    const inputs = getInputs();
+    const { scannerVersion, scannerBinariesUrl } = inputs;
+
+    // Run sanity checks first
+    runSanityChecks(inputs);
+
+    // Install Sonar Scanner CLI using @actions/tool-cache
+    await installSonarScannerCLI(scannerVersion, scannerBinariesUrl);
+  } catch (error) {
+    core.setFailed(`Action failed: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 run();

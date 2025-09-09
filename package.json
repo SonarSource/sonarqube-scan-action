@@ -11,12 +11,13 @@
   "license": "LGPL-3.0-only",
   "dependencies": {
     "@actions/core": "1.11.1",
-    "@actions/github": "6.0.1"
+    "@actions/github": "6.0.1",
+    "@actions/tool-cache": "2.0.2"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "28.0.6",
     "@rollup/plugin-node-resolve": "16.0.1",
-    "mock-fs": "^5.5.0",
+    "mock-fs": "5.5.0",
     "rollup": "4.50.1"
   }
 }
