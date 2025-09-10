@@ -10,9 +10,11 @@ inputs:
   args:
     description: Additional arguments to the Sonar Scanner CLI
     required: false
+    default: ""
   projectBaseDir:
     description: Set the sonar.projectBaseDir analysis property
     required: false
+    default: "."
   scannerVersion:
     description: Version of the Sonar Scanner CLI to use
     required: false
@@ -23,25 +25,5 @@ inputs:
     required: false
     default: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
 runs:
-  using: "composite"
-  steps:
-    # - name: Checkout
-    #   uses: actions/checkout@v5
-    #   with:
-    #     ref: "jay/js-rewrite"
-
-    - name: Sanity checks & setup
-      run: node ./dist/index.js
-      shell: bash
-      env:
-        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
-        INPUT_SCANNERVERSION: ${{ inputs.scannerVersion }}
-        INPUT_SCANNERBINARIESURL: ${{ inputs.scannerBinariesUrl }}
-
-    - name: Run SonarScanner
-      run: ${GITHUB_ACTION_PATH}/scripts/run-sonar-scanner.sh
-      shell: bash
-      env:
-        INPUT_ARGS: ${{ inputs.args }}
-        INPUT_PROJECTBASEDIR: ${{ inputs.projectBaseDir }}
-        SONAR_SCANNER_JRE: ${{ runner.temp }}/sonar-scanner-cli-${{ inputs.scannerVersion }}-${{ runner.os }}-${{ runner.arch }}/jre
+  using: node20
+  main: dist/index.js
