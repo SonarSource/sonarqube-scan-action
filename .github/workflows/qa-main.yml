@@ -207,8 +207,7 @@ jobs:
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output.properties"}'
       - name: Assert
         run: |
-          # The new JavaScript implementation uses @actions/tool-cache which caches tools differently
-          # Instead of checking for the zip file, verify the tool was installed by checking it's in PATH
+          # Verify the tool was installed by checking it's in PATH
           if ! command -v sonar-scanner &> /dev/null; then
             echo "Error: sonar-scanner not found in PATH"
             exit 1
@@ -482,6 +481,9 @@ jobs:
           then
             exit 1
           fi
+      - name: Generate SSL certificates for nginx
+        run: ./generate-ssl.sh
+        working-directory: .github/qa-nginx-redirecting
       - name: Start nginx via Docker Compose
         run: docker compose up -d --wait
         working-directory: .github/qa-nginx-redirecting
@@ -490,14 +492,19 @@ jobs:
         uses: ./
         with:
           scannerVersion: 6.2.1.4610
-          scannerBinariesUrl: http://localhost:8080/clientRedirectToSonarBinaries
+          scannerBinariesUrl: https://localhost:8080/clientRedirectToSonarBinaries
         env:
           NO_CACHE: true
+          NODE_TLS_REJECT_UNAUTHORIZED: 0
           SONAR_HOST_URL: http://not_actually_used
           SONAR_SCANNER_JSON_PARAMS: '{"sonar.scanner.internal.dumpToFile": "./output1.properties"}'
       - name: Assert Sonar Scanner CLI was downloaded
         run: |
-          ./test/assertFileExists "$RUNNER_TEMP/sonarscanner/sonar-scanner-cli-6.2.1.4610-linux-x64.zip"
+          # Verify the tool was installed by checking it's in PATH
+          if ! command -v sonar-scanner &> /dev/null; then
+            echo "Error: sonar-scanner not found in PATH"
+            exit 1
+          fi
   useSslCertificate:
     name: >
       'SONAR_ROOT_CERT' is converted to truststore
