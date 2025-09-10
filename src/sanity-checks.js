@@ -14,8 +14,8 @@ export function validateScannerVersion(version) {
   }
 }
 
-export function checkSonarToken(core) {
-  if (!process.env.SONAR_TOKEN) {
+export function checkSonarToken(core, sonarToken) {
+  if (!sonarToken) {
     core.warning(
       "Running this GitHub Action without SONAR_TOKEN is not recommended"
     );
