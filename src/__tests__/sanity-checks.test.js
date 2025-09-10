@@ -63,9 +63,6 @@ describe("validateScannerVersion", () => {
 
 describe("checkSonarToken", () => {
   it("calls core.warning when SONAR_TOKEN is not set", () => {
-    const originalToken = process.env.SONAR_TOKEN;
-    delete process.env.SONAR_TOKEN;
-
     const warning = mock.fn();
 
     checkSonarToken(mockCore({ warning }));
@@ -75,27 +72,14 @@ describe("checkSonarToken", () => {
       warning.mock.calls[0].arguments[0],
       "Running this GitHub Action without SONAR_TOKEN is not recommended"
     );
-
-    if (originalToken) {
-      process.env.SONAR_TOKEN = originalToken;
-    }
   });
 
   it("does not call core.warning when SONAR_TOKEN is set", () => {
-    const originalToken = process.env.SONAR_TOKEN;
-    process.env.SONAR_TOKEN = "test-token";
-
     const warning = mock.fn();
 
-    checkSonarToken(mockCore({ warning }));
+    checkSonarToken(mockCore({ warning }), "test-token");
 
     assert.equal(warning.mock.calls.length, 0);
-
-    if (originalToken) {
-      process.env.SONAR_TOKEN = originalToken;
-    } else {
-      delete process.env.SONAR_TOKEN;
-    }
   });
 });
 

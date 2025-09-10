@@ -29844,6 +29844,92 @@ function requireToolCache () {
 
 var toolCacheExports = requireToolCache();
 
+const platformFlavor = {
+  linux: {
+    x64: "linux-x64",
+    arm64: "linux-aarch64",
+  },
+  win32: {
+    x64: "windows-x64",
+  },
+  darwin: {
+    x64: "macosx-x64",
+    arm64: "macosx-aarch64",
+  },
+};
+
+function getPlatformFlavor(platform, arch) {
+  const flavor = platformFlavor[platform]?.[arch];
+
+  if (!flavor) {
+    throw new Error(`Platform ${platform} ${arch} not supported`);
+  }
+
+  return flavor;
+}
+
+function getScannerDownloadURL({
+  scannerBinariesUrl,
+  scannerVersion,
+  flavor,
+}) {
+  const trimURL = scannerBinariesUrl.replace(/\/$/, "");
+  return `${trimURL}/sonar-scanner-cli-${scannerVersion}-${flavor}.zip`;
+}
+
+const scannerDirName = (version, flavor) =>
+  `sonar-scanner-${version}-${flavor}`;
+
+const TOOLNAME = "sonar-scanner-cli";
+
+/**
+ * Download the Sonar Scanner CLI for the current environment and cache it.
+ */
+async function installSonarScanner({
+  scannerVersion,
+  scannerBinariesUrl,
+}) {
+  const flavor = getPlatformFlavor(require$$0.platform(), require$$0.arch());
+
+  // Check if tool is already cached
+  let toolDir = toolCacheExports.find(TOOLNAME, scannerVersion, flavor);
+
+  if (!toolDir) {
+    console.log(
+      `Installing Sonar Scanner CLI ${scannerVersion} for ${flavor}...`
+    );
+
+    const downloadUrl = getScannerDownloadURL({
+      scannerBinariesUrl,
+      scannerVersion,
+      flavor,
+    });
+
+    console.log(`Downloading from: ${downloadUrl}`);
+
+    const downloadPath = await toolCacheExports.downloadTool(downloadUrl);
+    const extractedPath = await toolCacheExports.extractZip(downloadPath);
+
+    // Find the actual scanner directory inside the extracted folder
+    const scannerPath = path.join(
+      extractedPath,
+      scannerDirName(scannerVersion, flavor)
+    );
+
+    toolDir = await toolCacheExports.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
+
+    console.log(`Sonar Scanner CLI cached to: ${toolDir}`);
+  } else {
+    console.log(`Using cached Sonar Scanner CLI from: ${toolDir}`);
+  }
+
+  // Add the bin directory to PATH
+  const binDir = path.join(toolDir, "bin");
+  coreExports.addPath(binDir);
+
+  return toolDir;
+}
+
 var execExports = requireExec();
 
 function parseArgsStringToArgv(value, env, file) {
@@ -30029,8 +30115,8 @@ function validateScannerVersion(version) {
   }
 }
 
-function checkSonarToken(core) {
-  if (!process.env.SONAR_TOKEN) {
+function checkSonarToken(core, sonarToken) {
+  {
     core.warning(
       "Running this GitHub Action without SONAR_TOKEN is not recommended"
     );
@@ -30058,44 +30144,6 @@ function checkGradleProject(core, projectBaseDir) {
   }
 }
 
-const platformFlavor = {
-  linux: {
-    x64: "linux-x64",
-    arm64: "linux-aarch64",
-  },
-  win32: {
-    x64: "windows-x64",
-  },
-  darwin: {
-    x64: "macosx-x64",
-    arm64: "macosx-aarch64",
-  },
-};
-
-function getPlatformFlavor(platform, arch) {
-  const flavor = platformFlavor[platform]?.[arch];
-
-  if (!flavor) {
-    throw new Error(`Platform ${platform} ${arch} not supported`);
-  }
-
-  return flavor;
-}
-
-function getScannerDownloadURL({
-  scannerBinariesUrl,
-  scannerVersion,
-  flavor,
-}) {
-  const trimURL = scannerBinariesUrl.replace(/\/$/, "");
-  return `${trimURL}/sonar-scanner-cli-${scannerVersion}-${flavor}.zip`;
-}
-
-const scannerDirName = (version, flavor) =>
-  `sonar-scanner-${version}-${flavor}`;
-
-const TOOLNAME = "sonar-scanner-cli";
-
 /**
  * Inputs are defined in action.yml
  */
@@ -30108,13 +30156,20 @@ function getInputs() {
   return { args, projectBaseDir, scannerBinariesUrl, scannerVersion };
 }
 
-function getRunnerEnv() {
+/**
+ * These RUNNER env variables come from GitHub by default.
+ * See https://docs.github.com/en/actions/reference/workflows-and-actions/variables#default-environment-variables
+ *
+ * The others are optional env variables provided by the user of the action
+ */
+function getEnvVariables() {
   return {
-    RUNNER_OS: process.env.RUNNER_OS,
-    SONARCLOUD_URL: process.env.SONARCLOUD_URL,
     RUNNER_DEBUG: process.env.RUNNER_DEBUG,
-    SONAR_ROOT_CERT: process.env.SONAR_ROOT_CERT,
+    RUNNER_OS: process.env.RUNNER_OS,
     RUNNER_TEMP: process.env.RUNNER_TEMP,
+    SONAR_ROOT_CERT: process.env.SONAR_ROOT_CERT,
+    SONARCLOUD_URL: process.env.SONARCLOUD_URL,
+    SONAR_TOKEN: process.env.SONAR_TOKEN,
   };
 }
 
@@ -30132,64 +30187,20 @@ function runSanityChecks(inputs) {
   }
 }
 
-async function installSonarScannerCLI({ scannerVersion, scannerBinariesUrl }) {
-  const flavor = getPlatformFlavor(require$$0.platform(), require$$0.arch());
-
-  // Check if tool is already cached
-  let toolDir = toolCacheExports.find(TOOLNAME, scannerVersion, flavor);
-
-  if (!toolDir) {
-    console.log(
-      `Installing Sonar Scanner CLI ${scannerVersion} for ${flavor}...`
-    );
-
-    const downloadUrl = getScannerDownloadURL({
-      scannerBinariesUrl,
-      scannerVersion,
-      flavor,
-    });
-
-    console.log(`Downloading from: ${downloadUrl}`);
-
-    const downloadPath = await toolCacheExports.downloadTool(downloadUrl);
-    const extractedPath = await toolCacheExports.extractZip(downloadPath);
-
-    // Find the actual scanner directory inside the extracted folder
-    const scannerPath = path.join(
-      extractedPath,
-      scannerDirName(scannerVersion, flavor)
-    );
-
-    toolDir = await toolCacheExports.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
-
-    console.log(`Sonar Scanner CLI cached to: ${toolDir}`);
-  } else {
-    console.log(`Using cached Sonar Scanner CLI from: ${toolDir}`);
-  }
-
-  // Add the bin directory to PATH
-  const binDir = path.join(toolDir, "bin");
-  coreExports.addPath(binDir);
-
-  return toolDir;
-}
-
 async function run() {
   try {
     const { args, projectBaseDir, scannerVersion, scannerBinariesUrl } =
       getInputs();
+    const runnerEnv = getEnvVariables();
+    const { sonarToken } = runnerEnv;
 
-    // Run sanity checks first
-    runSanityChecks({ projectBaseDir, scannerVersion });
+    runSanityChecks({ projectBaseDir, scannerVersion, sonarToken });
 
-    // Install Sonar Scanner CLI using @actions/tool-cache
-    const scannerDir = await installSonarScannerCLI({
+    const scannerDir = await installSonarScanner({
       scannerVersion,
       scannerBinariesUrl,
     });
 
-    // Run the sonar scanner
-    const runnerEnv = getRunnerEnv();
     await runSonarScanner(args, projectBaseDir, scannerDir, runnerEnv);
   } catch (error) {
     coreExports.setFailed(`Action failed: ${error.message}`);
