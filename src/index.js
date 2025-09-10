@@ -2,6 +2,7 @@ import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
 import * as os from "os";
 import * as path from "path";
+import { runSonarScanner } from "./run-sonar-scanner";
 import {
   checkGradleProject,
   checkMavenProject,
@@ -16,18 +17,31 @@ import {
 
 const TOOLNAME = "sonar-scanner-cli";
 
+/**
+ * Inputs are defined in action.yml
+ */
 function getInputs() {
-  //FIXME: should not rely on ENV vars
-  const scannerVersion = process.env.INPUT_SCANNERVERSION; // core.getInput("scannerVersion");
-  const projectBaseDir = process.env.INPUT_PROJECTBASEDIR; // core.getInput("projectBaseDir") || ".";
-  const scannerBinariesUrl = process.env.INPUT_SCANNERBINARIESURL; // core.getInput("scannerBinariesUrl");
+  const args = core.getInput("args");
+  const projectBaseDir = core.getInput("projectBaseDir");
+  const scannerBinariesUrl = core.getInput("scannerBinariesUrl");
+  const scannerVersion = core.getInput("scannerVersion");
 
-  return { scannerVersion, projectBaseDir, scannerBinariesUrl };
+  return { args, projectBaseDir, scannerBinariesUrl, scannerVersion };
+}
+
+function getRunnerEnv() {
+  return {
+    RUNNER_OS: process.env.RUNNER_OS,
+    SONARCLOUD_URL: process.env.SONARCLOUD_URL,
+    RUNNER_DEBUG: process.env.RUNNER_DEBUG,
+    SONAR_ROOT_CERT: process.env.SONAR_ROOT_CERT,
+    RUNNER_TEMP: process.env.RUNNER_TEMP,
+  };
 }
 
 function runSanityChecks(inputs) {
   try {
-    const { scannerVersion, projectBaseDir } = inputs;
+    const { projectBaseDir, scannerVersion } = inputs;
 
     validateScannerVersion(scannerVersion);
     checkSonarToken(core);
@@ -39,7 +53,7 @@ function runSanityChecks(inputs) {
   }
 }
 
-async function installSonarScannerCLI(scannerVersion, scannerBinariesUrl) {
+async function installSonarScannerCLI({ scannerVersion, scannerBinariesUrl }) {
   const flavor = getPlatformFlavor(os.platform(), os.arch());
 
   // Check if tool is already cached
@@ -83,14 +97,21 @@ async function installSonarScannerCLI(scannerVersion, scannerBinariesUrl) {
 
 async function run() {
   try {
-    const inputs = getInputs();
-    const { scannerVersion, scannerBinariesUrl } = inputs;
+    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl } =
+      getInputs();
 
     // Run sanity checks first
-    runSanityChecks(inputs);
+    runSanityChecks({ projectBaseDir, scannerVersion });
 
     // Install Sonar Scanner CLI using @actions/tool-cache
-    await installSonarScannerCLI(scannerVersion, scannerBinariesUrl);
+    const scannerDir = await installSonarScannerCLI({
+      scannerVersion,
+      scannerBinariesUrl,
+    });
+
+    // Run the sonar scanner
+    const runnerEnv = getRunnerEnv();
+    await runSonarScanner(args, projectBaseDir, scannerDir, runnerEnv);
   } catch (error) {
     core.setFailed(`Action failed: ${error.message}`);
     process.exit(1);

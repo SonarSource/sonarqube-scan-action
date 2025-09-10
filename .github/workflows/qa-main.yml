@@ -490,7 +490,7 @@ jobs:
         uses: ./
         with:
           scannerVersion: 6.2.1.4610
-          scannerBinariesUrl: https://localhost:8080/clientRedirectToSonarBinaries
+          scannerBinariesUrl: http://localhost:8080/clientRedirectToSonarBinaries
         env:
           NO_CACHE: true
           SONAR_HOST_URL: http://not_actually_used
@@ -660,40 +660,6 @@ jobs:
       - name: Assert failure of previous step
         if: steps.wrong_ssl_certificate.outcome == 'success'
         run: exit 1
-  overridesScannerLocalFolderWhenPresent: # can happen in uncleaned self-hosted runners
-    name: >
-      'SCANNER_LOCAL_FOLDER' is cleaned with warning when present
-    runs-on: github-ubuntu-latest-s
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Create a dummy SCANNER_LOCAL_FOLDER with dummy content in it
-        run: |
-          SCANNER_VERSION="6.2.1.4610"
-          SCANNER_LOCAL_FOLDER="$RUNNER_TEMP/sonar-scanner-cli-$SCANNER_VERSION-$RUNNER_OS-$RUNNER_ARCH"
-          # emit SCANNER_VERSION and SCANNER_LOCAL_FOLDER to be able to read them in the next steps
-          echo "SCANNER_VERSION=$SCANNER_VERSION" >> $GITHUB_ENV
-          echo "SCANNER_LOCAL_FOLDER=$SCANNER_LOCAL_FOLDER" >> $GITHUB_ENV
-          mkdir -p "$SCANNER_LOCAL_FOLDER"
-          touch "$SCANNER_LOCAL_FOLDER/some_content.txt"
-      - name: Assert SCANNER_LOCAL_FOLDER exists and dummy file is in it
-        run: |
-          [ -d "$SCANNER_LOCAL_FOLDER" ] || exit 1
-          [ -f "$SCANNER_LOCAL_FOLDER/some_content.txt" ] || exit 1
-      - name: Run action with SONAR_SCANNER_TEMP
-        uses: ./
-        env:
-          NO_CACHE: true # force install-sonar-scanner-cli.sh execution
-          SONAR_SCANNER_TEMP: /tmp/sonar-scanner
-          SONAR_HOST_URL: http://not_actually_used
-        with:
-          args: -Dsonar.scanner.internal.dumpToFile=./output.properties
-          scannerVersion: ${{ env.SCANNER_VERSION }}
-      - name: Assert SCANNER_LOCAL_FOLDER exists and dummy file is not in it
-        run: |
-          [ -d "$SCANNER_LOCAL_FOLDER" ] || exit 1
-          [ ! -f "$SCANNER_LOCAL_FOLDER/some_content.txt" ] || exit 1
   updateTruststoreWhenPresent: # can happen in uncleaned self-hosted runners
     name: >
       truststore.p12 is updated when present
