@@ -1,4 +1,4 @@
-name: 'Install Build Wrapper for C and C++'
+name: "Install Build Wrapper for C and C++"
 description: >
   Download and install the Build Wrapper for C, C++, and Objective-C
   projects analyzed with manual config.
@@ -8,55 +8,6 @@ branding:
 outputs:
   build-wrapper-binary:
     description: "Absolute path to Build Wrapper binary."
-    value: ${{ steps.setup-outputs.outputs.build-wrapper-binary }}
 runs:
-  using: "composite"
-
-  steps:
-    # install packaged required for greadlink and sha256sum command on macOS
-    - name: Install required packages for macOS
-      if: runner.os == 'macOS'
-      shell: bash
-      run: brew install coreutils
-
-    - name: Set SONAR_HOST_URL to 'https://sonarcloud.io'
-      if: env.SONAR_HOST_URL == ''
-      shell: bash
-      run: |
-        echo "Setting SONAR_HOST_URL to 'https://sonarcloud.io'"
-        echo "SONAR_HOST_URL=https://sonarcloud.io" >> $GITHUB_ENV
-
-    - name: Configure paths
-      id: configure_paths
-      shell: bash
-      env:
-        OS: ${{ runner.os }}
-        ARCH: ${{ runner.arch }}
-        INSTALL_PATH: ${{ runner.temp }} # TODO: or .sonar, if RUNNER_TEMP creates problem with caching and self-hosted runners
-      run: ${GITHUB_ACTION_PATH}/../scripts/configure_paths.sh >> $GITHUB_OUTPUT
-
-    - name: Download and install Build Wrapper
-      shell: bash
-      env:
-        DOWNLOAD_URL: ${{ steps.configure_paths.outputs.build-wrapper-url }}
-        TMP_ZIP_PATH: ${{ runner.temp }}/build-wrapper-${{ inputs.configure_paths.sonar-scanner-version }}-${{ runner.os }}-${{ runner.arch }}.zip
-        INSTALL_PATH: ${{ runner.temp }} # TODO: or .sonar, if RUNNER_TEMP creates problem with caching and self-hosted runners
-      run: ${GITHUB_ACTION_PATH}/../scripts/download.sh
-
-    - name: Setup action outputs
-      id: setup-outputs
-      shell: bash
-      env:
-        BUILD_WRAPPER_DIR: ${{ steps.configure_paths.outputs.build-wrapper-dir }}
-        BUILD_WRAPPER_BIN: ${{ steps.configure_paths.outputs.build-wrapper-bin }}
-      run: |
-        source ${GITHUB_ACTION_PATH}/../scripts/utils.sh
-
-        BUILD_WRAPPER_BIN_DIR=$(realpath "${BUILD_WRAPPER_DIR}")
-        echo "${BUILD_WRAPPER_BIN_DIR}" >> $GITHUB_PATH
-        echo "'${BUILD_WRAPPER_BIN_DIR}' added to the path"
-
-        BUILD_WRAPPER_BIN=$(realpath "${BUILD_WRAPPER_BIN}")
-        echo "build-wrapper-binary=${BUILD_WRAPPER_BIN}" >> $GITHUB_OUTPUT
-        echo "'build-wrapper-binary' output set to '${BUILD_WRAPPER_BIN}'"
-        echo "::endgroup::"
+  using: node20
+  main: ../dist/install-build-wrapper.js

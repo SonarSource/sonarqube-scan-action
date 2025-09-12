@@ -3,7 +3,7 @@
   "version": "6.0.0",
   "description": "This SonarSource project, available as a GitHub Action, scans your projects with SonarQube [Server](https://www.sonarsource.com/products/sonarqube/) or [Cloud](https://www.sonarsource.com/products/sonarcloud/).",
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/main/index.js",
   "scripts": {
     "build": "rollup --config rollup.config.js",
     "test": "node --test"

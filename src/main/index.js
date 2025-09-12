@@ -1,12 +1,12 @@
 import * as core from "@actions/core";
-import { installSonarScanner } from "./main/install-sonar-scanner";
-import { runSonarScanner } from "./main/run-sonar-scanner";
+import { installSonarScanner } from "./install-sonar-scanner";
+import { runSonarScanner } from "./run-sonar-scanner";
 import {
   checkGradleProject,
   checkMavenProject,
   checkSonarToken,
   validateScannerVersion,
-} from "./main/sanity-checks";
+} from "./sanity-checks";
 
 /**
  * Inputs are defined in action.yml
