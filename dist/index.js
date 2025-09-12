@@ -29895,7 +29895,7 @@ async function installSonarScanner({
   let toolDir = toolCacheExports.find(TOOLNAME, scannerVersion, flavor);
 
   if (!toolDir) {
-    console.log(
+    coreExports.info(
       `Installing Sonar Scanner CLI ${scannerVersion} for ${flavor}...`
     );
 
@@ -29905,7 +29905,7 @@ async function installSonarScanner({
       flavor,
     });
 
-    console.log(`Downloading from: ${downloadUrl}`);
+    coreExports.info(`Downloading from: ${downloadUrl}`);
 
     const downloadPath = await toolCacheExports.downloadTool(downloadUrl);
     const extractedPath = await toolCacheExports.extractZip(downloadPath);
@@ -29918,9 +29918,9 @@ async function installSonarScanner({
 
     toolDir = await toolCacheExports.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
 
-    console.log(`Sonar Scanner CLI cached to: ${toolDir}`);
+    coreExports.info(`Sonar Scanner CLI cached to: ${toolDir}`);
   } else {
-    console.log(`Using cached Sonar Scanner CLI from: ${toolDir}`);
+    coreExports.info(`Using cached Sonar Scanner CLI from: ${toolDir}`);
   }
 
   // Add the bin directory to PATH
@@ -29967,30 +29967,33 @@ function firstString() {
     }
 }
 
+const KEYTOOL_MAIN_CLASS = "sun.security.tools.keytool.Main";
+const TRUSTSTORE_PASSWORD = "changeit"; // default password of the Java truststore!
+
 async function runSonarScanner(
   inputArgs,
   projectBaseDir,
   scannerDir,
   runnerEnv = {}
 ) {
-  const {
-    RUNNER_DEBUG,
-    RUNNER_OS,
-    RUNNER_TEMP,
-    SONAR_ROOT_CERT,
-    SONARCLOUD_URL,
-  } = runnerEnv;
+  const { runnerDebug, runnerOs, runnerTemp, sonarRootCert, sonarcloudUrl } =
+    runnerEnv;
 
   const scannerBin =
-    RUNNER_OS === "Windows" ? "sonar-scanner.bat" : "sonar-scanner";
+    runnerOs === "Windows" ? "sonar-scanner.bat" : "sonar-scanner";
 
   const scannerArgs = [];
 
-  if (SONARCLOUD_URL) {
-    scannerArgs.push(`-Dsonar.scanner.sonarcloudUrl=${SONARCLOUD_URL}`);
+  /**
+   * Not sanitization is needed when populating scannerArgs.
+   * @actions/exec will take care of sanitizing the args it receives.
+   */
+
+  if (sonarcloudUrl) {
+    scannerArgs.push(`-Dsonar.scanner.sonarcloudUrl=${sonarcloudUrl}`);
   }
 
-  if (RUNNER_DEBUG === "1") {
+  if (runnerDebug === "1") {
     scannerArgs.push("--debug");
   }
 
@@ -30000,68 +30003,36 @@ async function runSonarScanner(
 
   // The SSL folder may exist on an uncleaned self-hosted runner
   const sslFolder = path.join(require$$0.homedir(), ".sonar", "ssl");
-  /**
-   * Use keytool for now, as SonarQube 10.6 and below doesn't support openssl generated keystores
-   * keytool requires a password > 6 characters,  so we won't use the default password 'sonar'
-   */
-  const keytoolMainClass = "sun.security.tools.keytool.Main";
   const truststoreFile = path.join(sslFolder, "truststore.p12");
-  const truststorePassword = "changeit";
+
+  const keytoolParams = {
+    scannerDir,
+    truststoreFile,
+  };
 
   if (fs.existsSync(truststoreFile)) {
     let aliasSonarIsPresent = true;
 
     try {
-      await execExports.exec(
-        `${scannerDir}/jre/bin/java`,
-        [
-          keytoolMainClass,
-          "-storetype",
-          "PKCS12",
-          "-keystore",
-          truststoreFile,
-          "-storepass",
-          truststorePassword,
-          "-noprompt",
-          "-trustcacerts",
-          "-list",
-          "-v",
-          "-alias",
-          "sonar",
-        ],
-        { silent: true }
-      );
+      await checkSonarAliasInTruststore(keytoolParams);
     } catch (_) {
       aliasSonarIsPresent = false;
-      console.log(
+      coreExports.info(
         `Existing Scanner truststore ${truststoreFile} does not contain 'sonar' alias`
       );
     }
 
     if (aliasSonarIsPresent) {
-      console.log(
+      coreExports.info(
         `Removing 'sonar' alias from already existing Scanner truststore: ${truststoreFile}`
       );
-      await execExports.exec(`${scannerDir}/jre/bin/java`, [
-        keytoolMainClass,
-        "-storetype",
-        "PKCS12",
-        "-keystore",
-        truststoreFile,
-        "-storepass",
-        truststorePassword,
-        "-noprompt",
-        "-trustcacerts",
-        "-delete",
-        "-alias",
-        "sonar",
-      ]);
+      await deleteSonarAliasFromTruststore(keytoolParams);
     }
   }
 
-  if (SONAR_ROOT_CERT) {
-    console.log("Adding SSL certificate to the Scanner truststore");
-    const tempCertPath = path.join(RUNNER_TEMP, "tmpcert.pem");
+  if (sonarRootCert) {
+    coreExports.info("Adding SSL certificate to the Scanner truststore");
+    const tempCertPath = path.join(runnerTemp, "tmpcert.pem");
 
     try {
       fs.unlinkSync(tempCertPath);
@@ -30069,37 +30040,77 @@ async function runSonarScanner(
       // File doesn't exist, ignore
     }
 
-    fs.writeFileSync(tempCertPath, SONAR_ROOT_CERT);
+    fs.writeFileSync(tempCertPath, sonarRootCert);
     fs.mkdirSync(sslFolder, { recursive: true });
 
-    await execExports.exec(`${scannerDir}/jre/bin/java`, [
-      keytoolMainClass,
-      "-storetype",
-      "PKCS12",
-      "-keystore",
-      truststoreFile,
-      "-storepass",
-      truststorePassword,
-      "-noprompt",
-      "-trustcacerts",
-      "-importcert",
-      "-alias",
-      "sonar",
-      "-file",
-      tempCertPath,
-    ]);
+    await importCertificateToTruststore(keytoolParams, tempCertPath);
 
     scannerArgs.push(
-      `-Dsonar.scanner.truststorePassword=${truststorePassword}`
+      `-Dsonar.scanner.truststorePassword=${TRUSTSTORE_PASSWORD}`
     );
   }
 
   if (inputArgs) {
+    /**
+     * No sanitization, but it is parsing a string into an array of arguments in a safe way (= no command execution),
+     * and with good enough support of quotes to support arguments containing spaces.
+     */
     const args = parseArgsStringToArgv(inputArgs);
     scannerArgs.push(...args);
   }
 
+  /**
+   * Arguments are sanitized by `exec`
+   */
   await execExports.exec(scannerBin, scannerArgs);
+}
+
+/**
+ * Use keytool for now, as SonarQube 10.6 and below doesn't support openssl generated keystores
+ * keytool requires a password > 6 characters,  so we won't use the default password 'sonar'
+ */
+function executeKeytoolCommand({
+  scannerDir,
+  truststoreFile,
+  extraArgs,
+  options = {},
+}) {
+  const baseArgs = [
+    KEYTOOL_MAIN_CLASS,
+    "-storetype",
+    "PKCS12",
+    "-keystore",
+    truststoreFile,
+    "-storepass",
+    TRUSTSTORE_PASSWORD,
+    "-noprompt",
+    "-trustcacerts",
+    ...extraArgs,
+  ];
+
+  return execExports.exec(`${scannerDir}/jre/bin/java`, baseArgs, options);
+}
+
+function importCertificateToTruststore(keytoolParams, certPath) {
+  return executeKeytoolCommand({
+    ...keytoolParams,
+    extraArgs: ["-importcert", "-alias", "sonar", "-file", certPath],
+  });
+}
+
+function checkSonarAliasInTruststore(keytoolParams) {
+  return executeKeytoolCommand({
+    ...keytoolParams,
+    extraArgs: ["-list", "-v", "-alias", "sonar"],
+    options: { silent: true },
+  });
+}
+
+function deleteSonarAliasFromTruststore(keytoolParams) {
+  return executeKeytoolCommand({
+    ...keytoolParams,
+    extraArgs: ["-delete", "-alias", "sonar"],
+  });
 }
 
 function validateScannerVersion(version) {
@@ -30116,7 +30127,7 @@ function validateScannerVersion(version) {
 }
 
 function checkSonarToken(core, sonarToken) {
-  {
+  if (!sonarToken) {
     core.warning(
       "Running this GitHub Action without SONAR_TOKEN is not recommended"
     );
@@ -30164,21 +30175,21 @@ function getInputs() {
  */
 function getEnvVariables() {
   return {
-    RUNNER_DEBUG: process.env.RUNNER_DEBUG,
-    RUNNER_OS: process.env.RUNNER_OS,
-    RUNNER_TEMP: process.env.RUNNER_TEMP,
-    SONAR_ROOT_CERT: process.env.SONAR_ROOT_CERT,
-    SONARCLOUD_URL: process.env.SONARCLOUD_URL,
-    SONAR_TOKEN: process.env.SONAR_TOKEN,
+    runnerDebug: process.env.RUNNER_DEBUG,
+    runnerOs: process.env.RUNNER_OS,
+    runnerTemp: process.env.RUNNER_TEMP,
+    sonarRootCert: process.env.SONAR_ROOT_CERT,
+    sonarcloudUrl: process.env.SONARCLOUD_URL,
+    sonarToken: process.env.SONAR_TOKEN,
   };
 }
 
 function runSanityChecks(inputs) {
   try {
-    const { projectBaseDir, scannerVersion } = inputs;
+    const { projectBaseDir, scannerVersion, sonarToken } = inputs;
 
     validateScannerVersion(scannerVersion);
-    checkSonarToken(core$1);
+    checkSonarToken(core$1, sonarToken);
     checkMavenProject(core$1, projectBaseDir);
     checkGradleProject(core$1, projectBaseDir);
   } catch (error) {
