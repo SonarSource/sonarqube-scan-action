@@ -23,7 +23,7 @@ export async function installSonarScanner({
   let toolDir = tc.find(TOOLNAME, scannerVersion, flavor);
 
   if (!toolDir) {
-    console.log(
+    core.info(
       `Installing Sonar Scanner CLI ${scannerVersion} for ${flavor}...`
     );
 
@@ -33,7 +33,7 @@ export async function installSonarScanner({
       flavor,
     });
 
-    console.log(`Downloading from: ${downloadUrl}`);
+    core.info(`Downloading from: ${downloadUrl}`);
 
     const downloadPath = await tc.downloadTool(downloadUrl);
     const extractedPath = await tc.extractZip(downloadPath);
@@ -46,9 +46,9 @@ export async function installSonarScanner({
 
     toolDir = await tc.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
 
-    console.log(`Sonar Scanner CLI cached to: ${toolDir}`);
+    core.info(`Sonar Scanner CLI cached to: ${toolDir}`);
   } else {
-    console.log(`Using cached Sonar Scanner CLI from: ${toolDir}`);
+    core.info(`Using cached Sonar Scanner CLI from: ${toolDir}`);
   }
 
   // Add the bin directory to PATH

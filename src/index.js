@@ -28,21 +28,21 @@ function getInputs() {
  */
 function getEnvVariables() {
   return {
-    RUNNER_DEBUG: process.env.RUNNER_DEBUG,
-    RUNNER_OS: process.env.RUNNER_OS,
-    RUNNER_TEMP: process.env.RUNNER_TEMP,
-    SONAR_ROOT_CERT: process.env.SONAR_ROOT_CERT,
-    SONARCLOUD_URL: process.env.SONARCLOUD_URL,
-    SONAR_TOKEN: process.env.SONAR_TOKEN,
+    runnerDebug: process.env.RUNNER_DEBUG,
+    runnerOs: process.env.RUNNER_OS,
+    runnerTemp: process.env.RUNNER_TEMP,
+    sonarRootCert: process.env.SONAR_ROOT_CERT,
+    sonarcloudUrl: process.env.SONARCLOUD_URL,
+    sonarToken: process.env.SONAR_TOKEN,
   };
 }
 
 function runSanityChecks(inputs) {
   try {
-    const { projectBaseDir, scannerVersion } = inputs;
+    const { projectBaseDir, scannerVersion, sonarToken } = inputs;
 
     validateScannerVersion(scannerVersion);
-    checkSonarToken(core);
+    checkSonarToken(core, sonarToken);
     checkMavenProject(core, projectBaseDir);
     checkGradleProject(core, projectBaseDir);
   } catch (error) {
