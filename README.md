@@ -31,7 +31,7 @@ Read more information on how to analyze your code [here](https://docs.sonarsourc
 
 ## Usage
 
-Project metadata, including the location of the sources to be analyzed, must be declared in the file `sonar-project.properties` in the base directory:
+Project metadata, including the location of the sources to be analyzed, can be declared in the file `sonar-project.properties` in the base directory:
 
 ### Server
 
@@ -40,7 +40,7 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 
 # relative paths to source directories. More details and properties are described
 # at https://docs.sonarsource.com/sonarqube-server/latest/project-administration/analysis-scope/ 
-sonar.sources=.
+sonar.sources=src
 ```
 
 In the following cases:
@@ -71,7 +71,7 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+      uses: SonarSource/sonarqube-scan-action@<action version or sha1> # Ex: v4.1.0, or sha1, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
@@ -112,7 +112,7 @@ jobs:
         # build-preparation steps
         # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
     - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@<action version>
+      uses: SonarSource/sonarqube-scan-action@<action version or sha1>
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
@@ -130,7 +130,7 @@ It should look like this:
 ```yaml
 with:  
   args: >
-    --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+    --define "sonar.cfamily.build-wrapper-output=${{ env.BUILD_WRAPPER_OUT_DIR }}"
 ```
 
 See also [example configurations of C++ projects for SonarQube Server](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sq&type=repositories).
@@ -143,7 +143,7 @@ sonar.projectKey=<replace with the key generated when setting up the project on 
 
 # relative paths to source directories. More details and properties are described
 # at https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/analysis-scope/
-sonar.sources=.
+sonar.sources=src
 ```
 
 In the following cases:
@@ -174,7 +174,7 @@ jobs:
         # Disabling shallow clones is recommended for improving the relevancy of reporting
         fetch-depth: 0
     - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@<action version> # Ex: v4.1.0, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
+      uses: SonarSource/sonarqube-scan-action@<action version or sha1> # Ex: v4.1.0 or sha1, See the latest version at https://github.com/marketplace/actions/official-sonarqube-scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
@@ -212,35 +212,41 @@ jobs:
         # build-preparation steps
         # build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} build-command
     - name: SonarQube Scan
-      uses: SonarSource/sonarqube-scan-action@<action version>
+      uses: SonarSource/sonarqube-scan-action@<action version or sha1>
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
       with:
         # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
         args: >
-          --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
+          --define "sonar.cfamily.compile-commands=${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
 ```
 
 See also [example configurations of C++ projects for SonarQube Cloud](https://github.com/search?q=org%3Asonarsource-cfamily-examples+gh-actions-sc&type=repositories).
 
 ## Action parameters
 
+### `projectBaseDir`
+
 You can change the analysis base directory by using the optional input `projectBaseDir` like this:
 
 ```yaml
-- uses: SonarSource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version or sha1>
   with:
     projectBaseDir: app/src
 ```
 
+### `scannerVersion`
+
 In case you need to specify the version of the Sonar Scanner, you can use the `scannerVersion` option:
 
 ```yaml
-- uses: SonarSource/sonarqube-scan-action@<action version>
+- uses: SonarSource/sonarqube-scan-action@<action version or sha1>
   with:
     scannerVersion: 6.2.0.4584
 ```
+
+### `args`
 
 In case you need to add additional analysis parameters, and you do not wish to set them in the `sonar-project.properties` file, you can use the `args` option:
 
@@ -250,6 +256,7 @@ In case you need to add additional analysis parameters, and you do not wish to s
     projectBaseDir: app/src
     args: >
       -Dsonar.organization=my-organization # For SonarQube Cloud only
+      "-Dsonar.projectName=My Project"
       -Dsonar.projectKey=my-projectkey
       -Dsonar.python.coverage.reportPaths=coverage.xml
       -Dsonar.sources=lib/
@@ -257,6 +264,36 @@ In case you need to add additional analysis parameters, and you do not wish to s
       -Dsonar.test.exclusions=tests/**
       -Dsonar.verbose=true
 ```
+
+> [!NOTE]  
+> In version 6, the way the `args` option is handled has been changed to prevent command injection.
+> As a result, we no longer support the full bash syntax.
+> This means there is now a much more restricted use of quoting and escaping compared to older versions of the action.
+> Example:
+> ```yaml
+> with:
+>   args: >
+>     -testing test 
+>     -valid=true 
+>     --quotes "test quotes" "nested \'quotes\'" 
+>     -Dsonar.property="some value"
+>     "-Dsonar.property=some value"  
+> ```
+> will be parsed as the following array of strings:
+> ```
+> [
+>   '-testing',
+>   'test',
+>   '-valid=true',
+>   '--quotes',
+>   'test quotes', # Surrounding quotes are removed
+>   'nested \'quotes\'',
+>   '-Dsonar.property="some value"', # Internal quotes are NOT removed, contrary to the bash syntax
+>   '-Dsonar.property=some value', # This is the proper way to pass scanner arguments with spaces
+> ]
+> ```
+
+### `scannerBinariesUrl`
 
 You can also specify the URL where to retrieve the SonarScanner CLI from.
 The specified URL overrides the default address: `https://binaries.sonarsource.com/Distribution/sonar-scanner-cli`.
