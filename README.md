@@ -89,10 +89,13 @@ This GitHub Action will not work for all technologies. If you are in one of the 
 * **Your code is built with Gradle**. Read the documentation about our SonarScanner for Gradle in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner-for-gradle/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-gradle/).
 * **You want to analyze a .NET solution**. Read the documentation about our SonarScanner for .NET in SonarQube [Server](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/dotnet/introduction/) and [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/ci-based-analysis/sonarscanner-for-dotnet/introduction/).
 
-**Also, do not use this GitHub action if:**
+**Do not use this GitHub action if:**
 
 * You want to run the action on C, C++, or Objective-C projects on a 32-bits system - build wrappers support only 64-bits OS.
 
+**If you want to use Software Composition Analysis (SCA)**
+
+Dependency scanning with SonarQube Advanced Security SCA may not work correctly if scanning requires on-the-fly manifest file generation. See the SCA analysis environment requirement documentation for [Cloud](https://docs.sonarsource.com/sonarqube-cloud/advanced-security/analyzing-projects-for-dependencies-sca#appropriate-environment) or [Server](https://docs.sonarsource.com/sonarqube-server/advanced-security/analyzing-projects-for-dependencies#appropriate-environment).
 
 ## Key requirements
 
