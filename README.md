@@ -200,6 +200,15 @@ This can be useful when the runner executing the action is self-hosted and has r
     scannerBinariesUrl: https://my.custom.binaries.url.com/Distribution/sonar-scanner-cli/
 ```
 
+If the specified URL requires authorization then use the `scannerBinariesAuth` input to provide the necessary token:
+
+```yaml
+- uses: SonarSource/sonarqube-scan-action@<action version>
+  with:
+    scannerBinariesUrl: https://my.custom.binaries.url.com/Distribution/sonar-scanner-cli/
+    scannerBinariesAuth: ${{ secrets.SCANNER_BINARIES_AUTH_TOKEN }}
+```
+
 More information about possible analysis parameters can be found:
 * in the [Analysis parameters page](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/analysis-parameters/) of the SonarQube Server documentation
 * in the [Analysis parameters page](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/analysis-parameters/) of the SonarQube Cloud documentation

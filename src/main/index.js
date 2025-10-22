@@ -15,9 +15,10 @@ function getInputs() {
   const args = core.getInput("args");
   const projectBaseDir = core.getInput("projectBaseDir");
   const scannerBinariesUrl = core.getInput("scannerBinariesUrl");
+  const scannerBinariesAuth = core.getInput("scannerBinariesAuth");
   const scannerVersion = core.getInput("scannerVersion");
 
-  return { args, projectBaseDir, scannerBinariesUrl, scannerVersion };
+  return { args, projectBaseDir, scannerBinariesUrl, scannerBinariesAuth, scannerVersion };
 }
 
 /**
@@ -53,7 +54,7 @@ function runSanityChecks(inputs) {
 
 async function run() {
   try {
-    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl } =
+    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, scannerBinariesAuth } =
       getInputs();
     const runnerEnv = getEnvVariables();
     const { sonarToken } = runnerEnv;
@@ -63,6 +64,7 @@ async function run() {
     const scannerDir = await installSonarScanner({
       scannerVersion,
       scannerBinariesUrl,
+      scannerBinariesAuth,
     });
 
     await runSonarScanner(args, projectBaseDir, scannerDir, runnerEnv);

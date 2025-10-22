@@ -2640,12 +2640,53 @@ const scannerDirName = (version, flavor) =>
 
 const TOOLNAME = "sonar-scanner-cli";
 
+/** 
+ * Download the sonar-scanner-cli from a internal url along with authorization token
+ */
+async function downloadWithFetch(url, outputPath, authToken) {
+  coreExports.info(`Downloading sonar-scanner-cli from: ${url}`);
+
+  //create output directory if it doesn't exist
+  const outputDir = path.dirname(outputPath);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  //prepare headers
+  const headers = {};
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+    coreExports.info("Using auth token for download");
+  }
+  try {
+    const response = await fetch(url, { headers });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download sonar-scanner-cli from ${url}: ${response.statusText}`
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    fs.writeFileSync(outputPath, buffer);
+    coreExports.info(`Successfully Downloaded sonar-scanner-cli to: ${outputPath}`);
+
+    return outputPath;
+  }
+  catch (error) {
+    coreExports.setFailed(error.message);
+  }
+}
+
 /**
  * Download the Sonar Scanner CLI for the current environment and cache it.
  */
 async function installSonarScanner({
   scannerVersion,
   scannerBinariesUrl,
+  scannerBinariesAuth,
 }) {
   const flavor = getPlatformFlavor(require$$0.platform(), require$$0.arch());
 
@@ -2665,28 +2706,39 @@ async function installSonarScanner({
 
     coreExports.info(`Downloading from: ${downloadUrl}`);
 
-    const downloadPath = await toolCacheExports.downloadTool(downloadUrl);
-    const extractedPath = await toolCacheExports.extractZip(downloadPath);
+    let downloadPath;
+
+    if (scannerBinariesAuth) {
+      // If auth token is provided
+      const tempDir = process.env.RUNNER_TEMP || require$$0.tmpdir();
+      const fileName = path.basename(downloadUrl);
+      const tempFile = path.join(tempDir, fileName);
+
+      downloadPath = await downloadWithFetch(downloadUrl, tempFile, scannerBinariesAuth);
+    } else {
+      // use tool-cache without auth token
+      coreExports.info("Using tool-cache to run sonar-scanner-cli");
+      downloadPath = await toolCacheExports.downloadTool(downloadUrl);
+    }
+
+    const extractPath = await toolCacheExports.extractZip(downloadPath);
 
     // Find the actual scanner directory inside the extracted folder
-    const scannerPath = path.join(
-      extractedPath,
-      scannerDirName(scannerVersion, flavor)
-    );
-
+    const scannerPath = path.join(extractPath, scannerDirName(scannerVersion, flavor));
+    
     toolDir = await toolCacheExports.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
 
     coreExports.info(`Sonar Scanner CLI cached to: ${toolDir}`);
   } else {
-    coreExports.info(`Using cached Sonar Scanner CLI from: ${toolDir}`);
+    coreExports.info(`Using Sonar Scanner CLI from cache: ${toolDir}`);
   }
 
-  // Add the bin directory to PATH
+  // Add the tool to the path
   const binDir = path.join(toolDir, "bin");
   coreExports.addPath(binDir);
 
   return toolDir;
-}
+  }
 
 function parseArgsStringToArgv(value, env, file) {
     // ([^\s'"]([^\s'"]*(['"])([^\3]*?)\3)+[^\s'"]*) Matches nested quotes until the first space outside of quotes
@@ -2918,9 +2970,10 @@ function getInputs() {
   const args = coreExports.getInput("args");
   const projectBaseDir = coreExports.getInput("projectBaseDir");
   const scannerBinariesUrl = coreExports.getInput("scannerBinariesUrl");
+  const scannerBinariesAuth = coreExports.getInput("scannerBinariesAuth");
   const scannerVersion = coreExports.getInput("scannerVersion");
 
-  return { args, projectBaseDir, scannerBinariesUrl, scannerVersion };
+  return { args, projectBaseDir, scannerBinariesUrl, scannerBinariesAuth, scannerVersion };
 }
 
 /**
@@ -2956,7 +3009,7 @@ function runSanityChecks(inputs) {
 
 async function run() {
   try {
-    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl } =
+    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, scannerBinariesAuth } =
       getInputs();
     const runnerEnv = getEnvVariables();
     const { sonarToken } = runnerEnv;
@@ -2966,6 +3019,7 @@ async function run() {
     const scannerDir = await installSonarScanner({
       scannerVersion,
       scannerBinariesUrl,
+      scannerBinariesAuth,
     });
 
     await runSonarScanner(args, projectBaseDir, scannerDir, runnerEnv);

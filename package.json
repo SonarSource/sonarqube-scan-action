@@ -13,6 +13,7 @@
     "@actions/core": "1.11.1",
     "@actions/github": "6.0.1",
     "@actions/tool-cache": "2.0.2",
+    "fs": "^0.0.1-security",
     "string-argv": "0.3.2"
   },
   "devDependencies": {

@@ -24,6 +24,10 @@ inputs:
     description: URL to download the Sonar Scanner CLI binaries from
     required: false
     default: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
+  scannerBinariesAuth:
+    description: Authentication token to download the Sonar Scanner CLI binary from customBinariesUrl
+    required: false
+    default: ""
 runs:
   using: node20
   main: dist/index.js
