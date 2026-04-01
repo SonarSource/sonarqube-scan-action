@@ -9,5 +9,5 @@ outputs:
   build-wrapper-binary:
     description: "Absolute path to Build Wrapper binary."
 runs:
-  using: node20
+  using: node24
   main: ../dist/install-build-wrapper.js
