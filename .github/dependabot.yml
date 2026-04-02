@@ -12,5 +12,9 @@ updates:
       interval: "daily"
       timezone: "CET"
     open-pull-requests-limit: 100
+    cooldown:
+      default-days: 5
+      exclude:
+        - "SonarSource/*"
     commit-message:
       prefix: "NO-JIRA "
