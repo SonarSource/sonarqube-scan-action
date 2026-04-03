@@ -32,7 +32,7 @@ Both the main action and the secondary _install-build-wrapper_ action are [Javas
 
 ### Requirements
 
-Make sure you have node 20 & npm installed. We recommend using [nvm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm#using-a-node-version-manager-to-install-nodejs-and-npm) for that.
+Make sure you have node 24 & npm installed. We recommend using [nvm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm#using-a-node-version-manager-to-install-nodejs-and-npm) for that.
 
 ### Building & testing
 
