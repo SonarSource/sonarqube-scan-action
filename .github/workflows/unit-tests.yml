@@ -26,7 +26,11 @@ jobs:
 
       - name: Check dist/ is up-to-date
         run: |
-          if [ -n "$(git diff --name-only)" ]; then
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::dist/ is out of date. Run 'npm run build' and commit the changes."
+            git status --short
+            exit 1
+          fi
             echo "::error::dist/ is out of date. Run 'npm run build' and commit the changes."
             git diff --name-only
             exit 1
