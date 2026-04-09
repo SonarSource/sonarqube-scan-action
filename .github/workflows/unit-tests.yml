@@ -31,10 +31,6 @@ jobs:
             git status --short
             exit 1
           fi
-            echo "::error::dist/ is out of date. Run 'npm run build' and commit the changes."
-            git diff --name-only
-            exit 1
-          fi
 
       - name: Run tests
         run: npm test
