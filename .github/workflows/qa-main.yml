@@ -17,7 +17,7 @@ jobs:
         os: [github-ubuntu-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action without args
@@ -37,7 +37,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -66,7 +66,7 @@ jobs:
           ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -93,7 +93,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -121,7 +121,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -148,7 +148,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -178,7 +178,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: mkdir -p ./baseDir
@@ -198,7 +198,7 @@ jobs:
       'scannerVersion' input
     runs-on: github-ubuntu-latest-s # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerVersion
@@ -222,7 +222,7 @@ jobs:
       'scannerBinariesUrl' input with invalid URL
     runs-on: github-ubuntu-latest-s # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -250,7 +250,7 @@ jobs:
       'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -271,7 +271,7 @@ jobs:
       'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -300,7 +300,7 @@ jobs:
       Don't fail on Gradle project
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Gradle project
@@ -321,7 +321,7 @@ jobs:
       Don't fail on Kotlin Gradle project
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Kotlin Gradle project
@@ -342,7 +342,7 @@ jobs:
       Don't fail on Maven project
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Maven project
@@ -375,7 +375,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on sample project
@@ -398,7 +398,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with debug mode
@@ -429,11 +429,11 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: SonarQube Cache
-        uses: actions/cache@v5
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ${{ github.workspace }}/.sonar/cache
           key: ${{ runner.os }}-${{ runner.arch }}-sonar
@@ -458,7 +458,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SONARCLOUD_URL
@@ -477,7 +477,7 @@ jobs:
       curl performs redirect when scannerBinariesUrl returns 3xx
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Remove wget
@@ -521,7 +521,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SSL certificate
@@ -572,7 +572,7 @@ jobs:
       Analysis takes into account 'SONAR_ROOT_CERT'
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate server certificate
@@ -680,7 +680,7 @@ jobs:
       truststore.p12 is updated when present
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create SONAR_SSL_FOLDER with a file in it (not-truststore.p12)
@@ -809,7 +809,7 @@ jobs:
       'scannerVersion' input validation
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with invalid scannerVersion
