@@ -1,4 +1,4 @@
-import { f as execExports, e as coreExports } from './exec-BTlTa8sL.js';
+import { h as getExecOutput, b as addPath, i as info, j as setOutput, s as setFailed, e as exec, k as startGroup, l as endGroup } from './core-DpWEmnbG.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import 'os';
@@ -10,24 +10,46 @@ import 'tls';
 import 'events';
 import 'assert';
 import 'util';
-import 'stream';
-import 'buffer';
-import 'querystring';
-import 'stream/web';
+import 'node:assert';
+import 'node:net';
+import 'node:http';
 import 'node:stream';
+import 'node:buffer';
 import 'node:util';
+import 'node:querystring';
 import 'node:events';
-import 'worker_threads';
-import 'perf_hooks';
-import 'util/types';
-import 'async_hooks';
-import 'console';
-import 'url';
-import 'zlib';
+import 'node:diagnostics_channel';
+import 'node:tls';
+import 'node:zlib';
+import 'node:perf_hooks';
+import 'node:util/types';
+import 'node:worker_threads';
+import 'node:url';
+import 'node:async_hooks';
+import 'node:console';
+import 'node:dns';
 import 'string_decoder';
-import 'diagnostics_channel';
 import 'child_process';
 import 'timers';
+
+// SonarQube Scan Action
+// Copyright (C) SonarSource Sàrl
+// mailto:contact AT sonarsource DOT com
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3 of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program; if not, write to the Free Software Foundation,
+// Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
 
 /**
  * Compute all names and paths related to the build wrapper
@@ -102,7 +124,7 @@ function getSuffixAndName(runnerOS, runnerArch) {
 async function getRealPath(filePath, runnerOS) {
   switch (runnerOS) {
     case "Windows": {
-      const windowsResult = await execExports.getExecOutput("cygpath", [
+      const windowsResult = await getExecOutput("cygpath", [
         "--absolute",
         "--windows",
         filePath,
@@ -110,14 +132,14 @@ async function getRealPath(filePath, runnerOS) {
       return windowsResult.stdout.trim();
     }
     case "Linux": {
-      const linuxResult = await execExports.getExecOutput("readlink", [
+      const linuxResult = await getExecOutput("readlink", [
         "-f",
         filePath,
       ]);
       return linuxResult.stdout.trim();
     }
     case "macOS": {
-      const macResult = await execExports.getExecOutput("greadlink", ["-f", filePath]);
+      const macResult = await getExecOutput("greadlink", ["-f", filePath]);
       return macResult.stdout.trim();
     }
     default:
@@ -125,10 +147,29 @@ async function getRealPath(filePath, runnerOS) {
   }
 }
 
+// SonarQube Scan Action
+// Copyright (C) SonarSource Sàrl
+// mailto:contact AT sonarsource DOT com
+//
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3 of the License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program; if not, write to the Free Software Foundation,
+// Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
 async function installMacOSPackages() {
   if (process.platform === "darwin") {
-    coreExports.info("Installing required packages for macOS");
-    await execExports.exec("brew", ["install", "coreutils"]);
+    info("Installing required packages for macOS");
+    await exec("brew", ["install", "coreutils"]);
   }
 }
 
@@ -158,20 +199,20 @@ async function downloadAndInstallBuildWrapper(downloadUrl, runnerEnv) {
     `build-wrapper-${runnerOS}-${runnerArch}.zip`
   );
 
-  coreExports.startGroup(`Download ${downloadUrl}`);
+  startGroup(`Download ${downloadUrl}`);
 
-  coreExports.info(`Downloading '${downloadUrl}'`);
+  info(`Downloading '${downloadUrl}'`);
 
   if (!fs.existsSync(runnerTemp)) {
     fs.mkdirSync(runnerTemp, { recursive: true });
   }
 
-  await execExports.exec("curl", ["-sSLo", tmpZipPath, downloadUrl]);
+  await exec("curl", ["-sSLo", tmpZipPath, downloadUrl]);
 
-  coreExports.info("Decompressing");
-  await execExports.exec("unzip", ["-o", "-d", runnerTemp, tmpZipPath]);
+  info("Decompressing");
+  await exec("unzip", ["-o", "-d", runnerTemp, tmpZipPath]);
 
-  coreExports.endGroup();
+  endGroup();
 }
 
 async function run() {
@@ -189,17 +230,17 @@ async function run() {
       buildWrapperDir,
       envVariables.runnerOS
     );
-    coreExports.addPath(buildWrapperBinDir);
-    coreExports.info(`'${buildWrapperBinDir}' added to the path`);
+    addPath(buildWrapperBinDir);
+    info(`'${buildWrapperBinDir}' added to the path`);
 
     const buildWrapperBinPath = await getRealPath(
       buildWrapperBin,
       envVariables.runnerOS
     );
-    coreExports.setOutput("build-wrapper-binary", buildWrapperBinPath);
-    coreExports.info(`'build-wrapper-binary' output set to '${buildWrapperBinPath}'`);
+    setOutput("build-wrapper-binary", buildWrapperBinPath);
+    info(`'build-wrapper-binary' output set to '${buildWrapperBinPath}'`);
   } catch (error) {
-    coreExports.setFailed(error.message);
+    setFailed(error.message);
   }
 }
 
