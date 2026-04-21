@@ -32,9 +32,9 @@ jobs:
 
       - name: Check dist/ is up-to-date
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
+          if ! git diff --exit-code dist/ || [ -n "$(git status --porcelain dist/)" ]; then
             echo "::error::dist/ is out of date. Run 'npm run build' and commit the changes."
-            git status --short
+            git status --short dist/
             exit 1
           fi
 
