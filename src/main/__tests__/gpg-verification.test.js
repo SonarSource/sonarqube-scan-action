@@ -71,7 +71,7 @@ describe("gpg-verification", () => {
           "/c/a/_temp/gpg-home"
         );
         assert.equal(
-          convertToUnixPath("D:\\Users\\test\\file.txt"),
+          convertToUnixPath(String.raw`D:\Users\test\file.txt`),
           "/d/Users/test/file.txt"
         );
       } finally {
@@ -94,7 +94,7 @@ describe("gpg-verification", () => {
 
       try {
         assert.equal(
-          convertToUnixPath("C:\\a/_temp\\gpg-home"),
+          convertToUnixPath(String.raw`C:\a/_temp\gpg-home`),
           "/c/a/_temp/gpg-home"
         );
       } finally {
