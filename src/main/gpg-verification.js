@@ -111,7 +111,7 @@ export function convertToUnixPath(windowsPath) {
   }
 
   // Convert backslashes to forward slashes
-  let unixPath = windowsPath.replaceAll('\\', "/");
+  let unixPath = windowsPath.replaceAll("\\", "/");
 
   // Convert drive letter (e.g., C: -> /c)
   unixPath = unixPath.replace(/^([A-Za-z]):/, (match, drive) => {
