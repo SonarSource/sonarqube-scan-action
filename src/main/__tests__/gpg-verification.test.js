@@ -18,16 +18,17 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-import { describe, it, afterEach, beforeEach } from "node:test";
+import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
   getGpgCommand,
   setupGpgHome,
   cleanupGpgHome,
   importSonarSourceKey,
+  convertToUnixPath,
 } from "../gpg-verification.js";
 
 describe("gpg-verification", () => {
@@ -54,6 +55,80 @@ describe("gpg-verification", () => {
     });
   });
 
+  describe("convertToUnixPath", () => {
+    it("should convert Windows path with drive letter to Unix path", () => {
+      // Mock Windows platform
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", {
+        value: "win32",
+        writable: true,
+        configurable: true,
+      });
+
+      try {
+        assert.equal(
+          convertToUnixPath("C:\\a\\_temp\\gpg-home"),
+          "/c/a/_temp/gpg-home"
+        );
+        assert.equal(
+          convertToUnixPath("D:\\Users\\test\\file.txt"),
+          "/d/Users/test/file.txt"
+        );
+      } finally {
+        // Restore original platform
+        Object.defineProperty(process, "platform", {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
+
+    it("should handle mixed slashes on Windows", () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", {
+        value: "win32",
+        writable: true,
+        configurable: true,
+      });
+
+      try {
+        assert.equal(
+          convertToUnixPath("C:\\a/_temp\\gpg-home"),
+          "/c/a/_temp/gpg-home"
+        );
+      } finally {
+        Object.defineProperty(process, "platform", {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
+
+    it("should return path unchanged on non-Windows platforms", () => {
+      const originalPlatform = process.platform;
+      Object.defineProperty(process, "platform", {
+        value: "linux",
+        writable: true,
+        configurable: true,
+      });
+
+      try {
+        assert.equal(
+          convertToUnixPath("/tmp/gpg-home"),
+          "/tmp/gpg-home"
+        );
+      } finally {
+        Object.defineProperty(process, "platform", {
+          value: originalPlatform,
+          writable: true,
+          configurable: true,
+        });
+      }
+    });
+  });
+
   describe("setupGpgHome", () => {
     it("should create a temporary GPG home directory", () => {
       const gpgHome = setupGpgHome();
@@ -65,8 +140,8 @@ describe("gpg-verification", () => {
       // Check directory permissions (on Unix systems)
       if (process.platform !== "win32") {
         const stats = fs.statSync(gpgHome);
-        const mode = stats.mode & parseInt("777", 8);
-        assert.equal(mode, parseInt("700", 8));
+        const mode = stats.mode & Number.parseInt("777", 8);
+        assert.equal(mode, Number.parseInt("700", 8));
       }
     });
 

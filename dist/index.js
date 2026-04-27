@@ -12,6 +12,9 @@ import { ok } from 'assert';
 import 'string_decoder';
 import * as events from 'events';
 import { setTimeout as setTimeout$1 } from 'timers';
+import * as fs$1 from 'node:fs';
+import * as os$1 from 'node:os';
+import * as path$1 from 'node:path';
 import 'http';
 import 'https';
 import 'net';
@@ -3949,14 +3952,36 @@ function getGpgCommand() {
 }
 
 /**
+ * Converts a Windows path to Unix-style path for GPG
+ * GPG on Windows (from Git for Windows) expects Unix-style paths
+ * @param {string} windowsPath - Windows path (e.g., C:\a\_temp\gpg-home)
+ * @returns {string} Unix-style path (e.g., /c/a/_temp/gpg-home)
+ */
+function convertToUnixPath(windowsPath) {
+  if (process.platform !== "win32") {
+    return windowsPath;
+  }
+
+  // Convert backslashes to forward slashes
+  let unixPath = windowsPath.replace(/\\/g, "/");
+
+  // Convert drive letter (e.g., C: -> /c)
+  unixPath = unixPath.replace(/^([A-Za-z]):/, (match, drive) => {
+    return `/${drive.toLowerCase()}`;
+  });
+
+  return unixPath;
+}
+
+/**
  * Creates a temporary GPG home directory
  * @returns {string} Path to the temporary GPG home directory
  */
 function setupGpgHome() {
-  const tempDir = process.env.RUNNER_TEMP || os.tmpdir();
-  const gpgHome = path.join(tempDir, `gpg-home-${Date.now()}-${process.pid}`);
+  const tempDir = process.env.RUNNER_TEMP || os$1.tmpdir();
+  const gpgHome = path$1.join(tempDir, `gpg-home-${Date.now()}-${process.pid}`);
 
-  fs.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
+  fs$1.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
 
   return gpgHome;
 }
@@ -3971,12 +3996,14 @@ function setupGpgHome() {
  */
 async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
   const gpgCommand = getGpgCommand();
+  // Convert Windows paths to Unix-style for GPG compatibility
+  const gpgHomePath = convertToUnixPath(gpgHome);
 
   await execExports.exec(
     gpgCommand,
     [
       "--homedir",
-      gpgHome,
+      gpgHomePath,
       "--batch",
       "--keyserver",
       keyserver,
@@ -4041,9 +4068,17 @@ async function runGpgVerify(zipPath, signaturePath, gpgHome) {
 
   try {
     info("Verifying GPG signature...");
+    // Convert Windows paths to Unix-style for GPG compatibility
     await execExports.exec(
       gpgCommand,
-      ["--homedir", gpgHome, "--batch", "--verify", signaturePath, zipPath],
+      [
+        "--homedir",
+        convertToUnixPath(gpgHome),
+        "--batch",
+        "--verify",
+        convertToUnixPath(signaturePath),
+        convertToUnixPath(zipPath),
+      ],
       {
         silent: false,
       }
@@ -4061,8 +4096,8 @@ async function runGpgVerify(zipPath, signaturePath, gpgHome) {
  */
 function cleanupGpgHome(gpgHome) {
   try {
-    if (fs.existsSync(gpgHome)) {
-      fs.rmSync(gpgHome, { recursive: true, force: true });
+    if (fs$1.existsSync(gpgHome)) {
+      fs$1.rmSync(gpgHome, { recursive: true, force: true });
       debug(`Cleaned up temporary GPG home: ${gpgHome}`);
     }
   } catch (error) {

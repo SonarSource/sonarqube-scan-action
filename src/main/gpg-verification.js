@@ -20,9 +20,9 @@
 
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 // SonarSource public key fingerprint for verifying scanner signatures
 const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
@@ -100,6 +100,28 @@ export function getGpgCommand() {
 }
 
 /**
+ * Converts a Windows path to Unix-style path for GPG
+ * GPG on Windows (from Git for Windows) expects Unix-style paths
+ * @param {string} windowsPath - Windows path (e.g., C:\a\_temp\gpg-home)
+ * @returns {string} Unix-style path (e.g., /c/a/_temp/gpg-home)
+ */
+export function convertToUnixPath(windowsPath) {
+  if (process.platform !== "win32") {
+    return windowsPath;
+  }
+
+  // Convert backslashes to forward slashes
+  let unixPath = windowsPath.replace(/\\/g, "/");
+
+  // Convert drive letter (e.g., C: -> /c)
+  unixPath = unixPath.replace(/^([A-Za-z]):/, (match, drive) => {
+    return `/${drive.toLowerCase()}`;
+  });
+
+  return unixPath;
+}
+
+/**
  * Creates a temporary GPG home directory
  * @returns {string} Path to the temporary GPG home directory
  */
@@ -122,12 +144,14 @@ export function setupGpgHome() {
  */
 async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
   const gpgCommand = getGpgCommand();
+  // Convert Windows paths to Unix-style for GPG compatibility
+  const gpgHomePath = convertToUnixPath(gpgHome);
 
   await exec.exec(
     gpgCommand,
     [
       "--homedir",
-      gpgHome,
+      gpgHomePath,
       "--batch",
       "--keyserver",
       keyserver,
@@ -192,9 +216,17 @@ export async function runGpgVerify(zipPath, signaturePath, gpgHome) {
 
   try {
     core.info("Verifying GPG signature...");
+    // Convert Windows paths to Unix-style for GPG compatibility
     await exec.exec(
       gpgCommand,
-      ["--homedir", gpgHome, "--batch", "--verify", signaturePath, zipPath],
+      [
+        "--homedir",
+        convertToUnixPath(gpgHome),
+        "--batch",
+        "--verify",
+        convertToUnixPath(signaturePath),
+        convertToUnixPath(zipPath),
+      ],
       {
         silent: false,
       }
