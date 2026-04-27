@@ -3876,6 +3876,8 @@ const scannerDirName = (version, flavor) =>
 // SonarSource public key fingerprint for verifying scanner signatures
 const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
 const DEFAULT_KEYSERVER = "hkps://keyserver.ubuntu.com";
+// Fallback keyserver used if the primary keyserver fails to return the key
+const FALLBACK_KEYSERVER = "hkps://keys.openpgp.org";
 
 /**
  * Verifies the GPG signature of a downloaded file
@@ -3883,7 +3885,7 @@ const DEFAULT_KEYSERVER = "hkps://keyserver.ubuntu.com";
  * @param {string} signaturePath - Path to the .asc signature file
  * @param {object} options - Verification options
  * @param {string} options.keyFingerprint - GPG key fingerprint (default: SonarSource key)
- * @param {string} options.keyserver - Keyserver URL (default: keyserver.ubuntu.com)
+ * @param {string} options.keyserver - Primary keyserver URL (default: keyserver.ubuntu.com, with fallback to keys.openpgp.org)
  * @returns {Promise<void>}
  * @throws {Error} If GPG is unavailable or verification fails
  */
@@ -3960,6 +3962,34 @@ function setupGpgHome() {
 }
 
 /**
+ * Attempts to import a public key from a specific keyserver
+ * @param {string} gpgHome - Path to GPG home directory
+ * @param {string} keyFingerprint - Public key fingerprint
+ * @param {string} keyserver - Keyserver URL
+ * @returns {Promise<void>}
+ * @throws {Error} If key import fails
+ */
+async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
+  const gpgCommand = getGpgCommand();
+
+  await execExports.exec(
+    gpgCommand,
+    [
+      "--homedir",
+      gpgHome,
+      "--batch",
+      "--keyserver",
+      keyserver,
+      "--recv-keys",
+      keyFingerprint,
+    ],
+    {
+      silent: false,
+    }
+  );
+}
+
+/**
  * Imports the SonarSource public key from a keyserver
  * @param {string} gpgHome - Path to GPG home directory
  * @param {string} keyFingerprint - Public key fingerprint
@@ -3968,28 +3998,32 @@ function setupGpgHome() {
  * @throws {Error} If key import fails
  */
 async function importSonarSourceKey(gpgHome, keyFingerprint, keyserver) {
-  const gpgCommand = getGpgCommand();
+  let primaryError;
 
+  // Try primary keyserver
   try {
     info(`Importing SonarSource public key from ${keyserver}...`);
-    await execExports.exec(
-      gpgCommand,
-      [
-        "--homedir",
-        gpgHome,
-        "--batch",
-        "--keyserver",
-        keyserver,
-        "--recv-keys",
-        keyFingerprint,
-      ],
-      {
-        silent: false,
-      }
-    );
+    await tryImportKey(gpgHome, keyFingerprint, keyserver);
+    info(`Successfully imported key from ${keyserver}`);
+    return;
   } catch (error) {
+    primaryError = error;
+    warning(
+      `Failed to import key from ${keyserver}: ${error.message}`
+    );
+  }
+
+  // Try fallback keyserver
+  try {
+    info(`Attempting fallback keyserver ${FALLBACK_KEYSERVER}...`);
+    await tryImportKey(gpgHome, keyFingerprint, FALLBACK_KEYSERVER);
+    info(`Successfully imported key from fallback keyserver ${FALLBACK_KEYSERVER}`);
+    return;
+  } catch (fallbackError) {
     throw new Error(
-      `Failed to import SonarSource public key from keyserver: ${error.message}`
+      `Failed to import SonarSource public key from all keyservers. ` +
+      `Primary (${keyserver}): ${primaryError.message}. ` +
+      `Fallback (${FALLBACK_KEYSERVER}): ${fallbackError.message}`
     );
   }
 }
