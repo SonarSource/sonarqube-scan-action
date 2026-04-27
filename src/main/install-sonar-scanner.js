@@ -18,8 +18,8 @@
 
 import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
-import * as os from "os";
-import * as path from "path";
+import * as os from "node:os";
+import * as path from "node:path";
 import {
   getPlatformFlavor,
   getScannerDownloadURL,

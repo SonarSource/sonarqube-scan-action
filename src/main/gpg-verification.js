@@ -111,7 +111,7 @@ export function convertToUnixPath(windowsPath) {
   }
 
   // Convert backslashes to forward slashes
-  let unixPath = windowsPath.replace(/\\/g, "/");
+  let unixPath = windowsPath.replaceAll('\\', "/");
 
   // Convert drive letter (e.g., C: -> /c)
   unixPath = unixPath.replace(/^([A-Za-z]):/, (match, drive) => {
@@ -193,7 +193,6 @@ export async function importSonarSourceKey(gpgHome, keyFingerprint, keyserver) {
     core.info(`Attempting fallback keyserver ${FALLBACK_KEYSERVER}...`);
     await tryImportKey(gpgHome, keyFingerprint, FALLBACK_KEYSERVER);
     core.info(`Successfully imported key from fallback keyserver ${FALLBACK_KEYSERVER}`);
-    return;
   } catch (fallbackError) {
     throw new Error(
       `Failed to import SonarSource public key from all keyservers. ` +

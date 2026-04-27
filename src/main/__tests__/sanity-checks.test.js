@@ -62,7 +62,7 @@ describe("validateScannerVersion", () => {
 
   validVersions.forEach((version) => {
     it(`accepts ${version}`, () => {
-      assert.equal(validateScannerVersion(version), undefined);
+      assert.equals(validateScannerVersion(version), undefined);
     });
   });
 
