@@ -20,9 +20,9 @@
 
 import { describe, it, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
 import {
   getGpgCommand,
   setupGpgHome,
@@ -40,7 +40,8 @@ describe("gpg-verification", () => {
           fs.rmSync(dir, { recursive: true, force: true });
         }
       } catch (error) {
-        // Ignore cleanup errors
+        // Intentionally ignoring cleanup errors in test teardown
+        console.error(`Failed to clean up temp directory: ${error.message}`);
       }
     });
     tempDirs = [];
@@ -64,8 +65,8 @@ describe("gpg-verification", () => {
       // Check directory permissions (on Unix systems)
       if (process.platform !== "win32") {
         const stats = fs.statSync(gpgHome);
-        const mode = stats.mode & parseInt("777", 8);
-        assert.equal(mode, parseInt("700", 8));
+        const mode = stats.mode & Number.parseInt("777", 8);
+        assert.equal(mode, Number.parseInt("700", 8));
       }
     });
 
