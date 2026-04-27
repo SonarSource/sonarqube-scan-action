@@ -1,19 +1,24 @@
-import { i as info, d as debug, m as mkdirP, c as cp, H as HttpClient, r as rmRF, w as which, e as exec, a as isDebug, b as addPath, s as setFailed, g as getInput, f as core } from './core-DpWEmnbG.js';
+import { i as isRooted, w as which, e as exists, a as info, d as debug, m as mkdirP, c as cp, H as HttpClient, r as rmRF, b as isDebug, f as execExports, g as warning, h as addPath, s as setFailed, j as getInput, k as getBooleanInput, l as core } from './exec-zlpfwmpH.js';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import fs__default from 'fs';
 import * as os from 'os';
-import 'child_process';
+import * as child from 'child_process';
 import * as path from 'path';
-import { join } from 'path';
 import * as stream from 'stream';
 import * as require$$6 from 'util';
 import { ok } from 'assert';
+import 'string_decoder';
+import * as events from 'events';
+import { setTimeout as setTimeout$1 } from 'timers';
+import * as os$1 from 'node:os';
+import * as path$1 from 'node:path';
+import { join } from 'node:path';
+import * as fs$1 from 'node:fs';
+import fs__default from 'node:fs';
 import 'http';
 import 'https';
 import 'net';
 import 'tls';
-import 'events';
 import 'node:assert';
 import 'node:net';
 import 'node:http';
@@ -32,8 +37,6 @@ import 'node:url';
 import 'node:async_hooks';
 import 'node:console';
 import 'node:dns';
-import 'string_decoder';
-import 'timers';
 
 var re = {exports: {}};
 
@@ -2765,6 +2768,619 @@ var semverExports = requireSemver();
     });
 };
 
+var __awaiter$3 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+/* eslint-disable @typescript-eslint/unbound-method */
+const IS_WINDOWS$1 = process.platform === 'win32';
+/*
+ * Class for running command line tools. Handles quoting and arg parsing in a platform agnostic way.
+ */
+class ToolRunner extends events.EventEmitter {
+    constructor(toolPath, args, options) {
+        super();
+        if (!toolPath) {
+            throw new Error("Parameter 'toolPath' cannot be null or empty.");
+        }
+        this.toolPath = toolPath;
+        this.args = args || [];
+        this.options = options || {};
+    }
+    _debug(message) {
+        if (this.options.listeners && this.options.listeners.debug) {
+            this.options.listeners.debug(message);
+        }
+    }
+    _getCommandString(options, noPrefix) {
+        const toolPath = this._getSpawnFileName();
+        const args = this._getSpawnArgs(options);
+        let cmd = noPrefix ? '' : '[command]'; // omit prefix when piped to a second tool
+        if (IS_WINDOWS$1) {
+            // Windows + cmd file
+            if (this._isCmdFile()) {
+                cmd += toolPath;
+                for (const a of args) {
+                    cmd += ` ${a}`;
+                }
+            }
+            // Windows + verbatim
+            else if (options.windowsVerbatimArguments) {
+                cmd += `"${toolPath}"`;
+                for (const a of args) {
+                    cmd += ` ${a}`;
+                }
+            }
+            // Windows (regular)
+            else {
+                cmd += this._windowsQuoteCmdArg(toolPath);
+                for (const a of args) {
+                    cmd += ` ${this._windowsQuoteCmdArg(a)}`;
+                }
+            }
+        }
+        else {
+            // OSX/Linux - this can likely be improved with some form of quoting.
+            // creating processes on Unix is fundamentally different than Windows.
+            // on Unix, execvp() takes an arg array.
+            cmd += toolPath;
+            for (const a of args) {
+                cmd += ` ${a}`;
+            }
+        }
+        return cmd;
+    }
+    _processLineBuffer(data, strBuffer, onLine) {
+        try {
+            let s = strBuffer + data.toString();
+            let n = s.indexOf(os.EOL);
+            while (n > -1) {
+                const line = s.substring(0, n);
+                onLine(line);
+                // the rest of the string ...
+                s = s.substring(n + os.EOL.length);
+                n = s.indexOf(os.EOL);
+            }
+            return s;
+        }
+        catch (err) {
+            // streaming lines to console is best effort.  Don't fail a build.
+            this._debug(`error processing line. Failed with error ${err}`);
+            return '';
+        }
+    }
+    _getSpawnFileName() {
+        if (IS_WINDOWS$1) {
+            if (this._isCmdFile()) {
+                return process.env['COMSPEC'] || 'cmd.exe';
+            }
+        }
+        return this.toolPath;
+    }
+    _getSpawnArgs(options) {
+        if (IS_WINDOWS$1) {
+            if (this._isCmdFile()) {
+                let argline = `/D /S /C "${this._windowsQuoteCmdArg(this.toolPath)}`;
+                for (const a of this.args) {
+                    argline += ' ';
+                    argline += options.windowsVerbatimArguments
+                        ? a
+                        : this._windowsQuoteCmdArg(a);
+                }
+                argline += '"';
+                return [argline];
+            }
+        }
+        return this.args;
+    }
+    _endsWith(str, end) {
+        return str.endsWith(end);
+    }
+    _isCmdFile() {
+        const upperToolPath = this.toolPath.toUpperCase();
+        return (this._endsWith(upperToolPath, '.CMD') ||
+            this._endsWith(upperToolPath, '.BAT'));
+    }
+    _windowsQuoteCmdArg(arg) {
+        // for .exe, apply the normal quoting rules that libuv applies
+        if (!this._isCmdFile()) {
+            return this._uvQuoteCmdArg(arg);
+        }
+        // otherwise apply quoting rules specific to the cmd.exe command line parser.
+        // the libuv rules are generic and are not designed specifically for cmd.exe
+        // command line parser.
+        //
+        // for a detailed description of the cmd.exe command line parser, refer to
+        // http://stackoverflow.com/questions/4094699/how-does-the-windows-command-interpreter-cmd-exe-parse-scripts/7970912#7970912
+        // need quotes for empty arg
+        if (!arg) {
+            return '""';
+        }
+        // determine whether the arg needs to be quoted
+        const cmdSpecialChars = [
+            ' ',
+            '\t',
+            '&',
+            '(',
+            ')',
+            '[',
+            ']',
+            '{',
+            '}',
+            '^',
+            '=',
+            ';',
+            '!',
+            "'",
+            '+',
+            ',',
+            '`',
+            '~',
+            '|',
+            '<',
+            '>',
+            '"'
+        ];
+        let needsQuotes = false;
+        for (const char of arg) {
+            if (cmdSpecialChars.some(x => x === char)) {
+                needsQuotes = true;
+                break;
+            }
+        }
+        // short-circuit if quotes not needed
+        if (!needsQuotes) {
+            return arg;
+        }
+        // the following quoting rules are very similar to the rules that by libuv applies.
+        //
+        // 1) wrap the string in quotes
+        //
+        // 2) double-up quotes - i.e. " => ""
+        //
+        //    this is different from the libuv quoting rules. libuv replaces " with \", which unfortunately
+        //    doesn't work well with a cmd.exe command line.
+        //
+        //    note, replacing " with "" also works well if the arg is passed to a downstream .NET console app.
+        //    for example, the command line:
+        //          foo.exe "myarg:""my val"""
+        //    is parsed by a .NET console app into an arg array:
+        //          [ "myarg:\"my val\"" ]
+        //    which is the same end result when applying libuv quoting rules. although the actual
+        //    command line from libuv quoting rules would look like:
+        //          foo.exe "myarg:\"my val\""
+        //
+        // 3) double-up slashes that precede a quote,
+        //    e.g.  hello \world    => "hello \world"
+        //          hello\"world    => "hello\\""world"
+        //          hello\\"world   => "hello\\\\""world"
+        //          hello world\    => "hello world\\"
+        //
+        //    technically this is not required for a cmd.exe command line, or the batch argument parser.
+        //    the reasons for including this as a .cmd quoting rule are:
+        //
+        //    a) this is optimized for the scenario where the argument is passed from the .cmd file to an
+        //       external program. many programs (e.g. .NET console apps) rely on the slash-doubling rule.
+        //
+        //    b) it's what we've been doing previously (by deferring to node default behavior) and we
+        //       haven't heard any complaints about that aspect.
+        //
+        // note, a weakness of the quoting rules chosen here, is that % is not escaped. in fact, % cannot be
+        // escaped when used on the command line directly - even though within a .cmd file % can be escaped
+        // by using %%.
+        //
+        // the saving grace is, on the command line, %var% is left as-is if var is not defined. this contrasts
+        // the line parsing rules within a .cmd file, where if var is not defined it is replaced with nothing.
+        //
+        // one option that was explored was replacing % with ^% - i.e. %var% => ^%var^%. this hack would
+        // often work, since it is unlikely that var^ would exist, and the ^ character is removed when the
+        // variable is used. the problem, however, is that ^ is not removed when %* is used to pass the args
+        // to an external program.
+        //
+        // an unexplored potential solution for the % escaping problem, is to create a wrapper .cmd file.
+        // % can be escaped within a .cmd file.
+        let reverse = '"';
+        let quoteHit = true;
+        for (let i = arg.length; i > 0; i--) {
+            // walk the string in reverse
+            reverse += arg[i - 1];
+            if (quoteHit && arg[i - 1] === '\\') {
+                reverse += '\\'; // double the slash
+            }
+            else if (arg[i - 1] === '"') {
+                quoteHit = true;
+                reverse += '"'; // double the quote
+            }
+            else {
+                quoteHit = false;
+            }
+        }
+        reverse += '"';
+        return reverse.split('').reverse().join('');
+    }
+    _uvQuoteCmdArg(arg) {
+        // Tool runner wraps child_process.spawn() and needs to apply the same quoting as
+        // Node in certain cases where the undocumented spawn option windowsVerbatimArguments
+        // is used.
+        //
+        // Since this function is a port of quote_cmd_arg from Node 4.x (technically, lib UV,
+        // see https://github.com/nodejs/node/blob/v4.x/deps/uv/src/win/process.c for details),
+        // pasting copyright notice from Node within this function:
+        //
+        //      Copyright Joyent, Inc. and other Node contributors. All rights reserved.
+        //
+        //      Permission is hereby granted, free of charge, to any person obtaining a copy
+        //      of this software and associated documentation files (the "Software"), to
+        //      deal in the Software without restriction, including without limitation the
+        //      rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+        //      sell copies of the Software, and to permit persons to whom the Software is
+        //      furnished to do so, subject to the following conditions:
+        //
+        //      The above copyright notice and this permission notice shall be included in
+        //      all copies or substantial portions of the Software.
+        //
+        //      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        //      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        //      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        //      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        //      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+        //      FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+        //      IN THE SOFTWARE.
+        if (!arg) {
+            // Need double quotation for empty argument
+            return '""';
+        }
+        if (!arg.includes(' ') && !arg.includes('\t') && !arg.includes('"')) {
+            // No quotation needed
+            return arg;
+        }
+        if (!arg.includes('"') && !arg.includes('\\')) {
+            // No embedded double quotes or backslashes, so I can just wrap
+            // quote marks around the whole thing.
+            return `"${arg}"`;
+        }
+        // Expected input/output:
+        //   input : hello"world
+        //   output: "hello\"world"
+        //   input : hello""world
+        //   output: "hello\"\"world"
+        //   input : hello\world
+        //   output: hello\world
+        //   input : hello\\world
+        //   output: hello\\world
+        //   input : hello\"world
+        //   output: "hello\\\"world"
+        //   input : hello\\"world
+        //   output: "hello\\\\\"world"
+        //   input : hello world\
+        //   output: "hello world\\" - note the comment in libuv actually reads "hello world\"
+        //                             but it appears the comment is wrong, it should be "hello world\\"
+        let reverse = '"';
+        let quoteHit = true;
+        for (let i = arg.length; i > 0; i--) {
+            // walk the string in reverse
+            reverse += arg[i - 1];
+            if (quoteHit && arg[i - 1] === '\\') {
+                reverse += '\\';
+            }
+            else if (arg[i - 1] === '"') {
+                quoteHit = true;
+                reverse += '\\';
+            }
+            else {
+                quoteHit = false;
+            }
+        }
+        reverse += '"';
+        return reverse.split('').reverse().join('');
+    }
+    _cloneExecOptions(options) {
+        options = options || {};
+        const result = {
+            cwd: options.cwd || process.cwd(),
+            env: options.env || process.env,
+            silent: options.silent || false,
+            windowsVerbatimArguments: options.windowsVerbatimArguments || false,
+            failOnStdErr: options.failOnStdErr || false,
+            ignoreReturnCode: options.ignoreReturnCode || false,
+            delay: options.delay || 10000
+        };
+        result.outStream = options.outStream || process.stdout;
+        result.errStream = options.errStream || process.stderr;
+        return result;
+    }
+    _getSpawnOptions(options, toolPath) {
+        options = options || {};
+        const result = {};
+        result.cwd = options.cwd;
+        result.env = options.env;
+        result['windowsVerbatimArguments'] =
+            options.windowsVerbatimArguments || this._isCmdFile();
+        if (options.windowsVerbatimArguments) {
+            result.argv0 = `"${toolPath}"`;
+        }
+        return result;
+    }
+    /**
+     * Exec a tool.
+     * Output will be streamed to the live console.
+     * Returns promise with return code
+     *
+     * @param     tool     path to tool to exec
+     * @param     options  optional exec options.  See ExecOptions
+     * @returns   number
+     */
+    exec() {
+        return __awaiter$3(this, void 0, void 0, function* () {
+            // root the tool path if it is unrooted and contains relative pathing
+            if (!isRooted(this.toolPath) &&
+                (this.toolPath.includes('/') ||
+                    (IS_WINDOWS$1 && this.toolPath.includes('\\')))) {
+                // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
+                this.toolPath = path.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+            }
+            // if the tool is only a file name, then resolve it from the PATH
+            // otherwise verify it exists (add extension on Windows if necessary)
+            this.toolPath = yield which(this.toolPath, true);
+            return new Promise((resolve, reject) => __awaiter$3(this, void 0, void 0, function* () {
+                this._debug(`exec tool: ${this.toolPath}`);
+                this._debug('arguments:');
+                for (const arg of this.args) {
+                    this._debug(`   ${arg}`);
+                }
+                const optionsNonNull = this._cloneExecOptions(this.options);
+                if (!optionsNonNull.silent && optionsNonNull.outStream) {
+                    optionsNonNull.outStream.write(this._getCommandString(optionsNonNull) + os.EOL);
+                }
+                const state = new ExecState(optionsNonNull, this.toolPath);
+                state.on('debug', (message) => {
+                    this._debug(message);
+                });
+                if (this.options.cwd && !(yield exists(this.options.cwd))) {
+                    return reject(new Error(`The cwd: ${this.options.cwd} does not exist!`));
+                }
+                const fileName = this._getSpawnFileName();
+                const cp = child.spawn(fileName, this._getSpawnArgs(optionsNonNull), this._getSpawnOptions(this.options, fileName));
+                let stdbuffer = '';
+                if (cp.stdout) {
+                    cp.stdout.on('data', (data) => {
+                        if (this.options.listeners && this.options.listeners.stdout) {
+                            this.options.listeners.stdout(data);
+                        }
+                        if (!optionsNonNull.silent && optionsNonNull.outStream) {
+                            optionsNonNull.outStream.write(data);
+                        }
+                        stdbuffer = this._processLineBuffer(data, stdbuffer, (line) => {
+                            if (this.options.listeners && this.options.listeners.stdline) {
+                                this.options.listeners.stdline(line);
+                            }
+                        });
+                    });
+                }
+                let errbuffer = '';
+                if (cp.stderr) {
+                    cp.stderr.on('data', (data) => {
+                        state.processStderr = true;
+                        if (this.options.listeners && this.options.listeners.stderr) {
+                            this.options.listeners.stderr(data);
+                        }
+                        if (!optionsNonNull.silent &&
+                            optionsNonNull.errStream &&
+                            optionsNonNull.outStream) {
+                            const s = optionsNonNull.failOnStdErr
+                                ? optionsNonNull.errStream
+                                : optionsNonNull.outStream;
+                            s.write(data);
+                        }
+                        errbuffer = this._processLineBuffer(data, errbuffer, (line) => {
+                            if (this.options.listeners && this.options.listeners.errline) {
+                                this.options.listeners.errline(line);
+                            }
+                        });
+                    });
+                }
+                cp.on('error', (err) => {
+                    state.processError = err.message;
+                    state.processExited = true;
+                    state.processClosed = true;
+                    state.CheckComplete();
+                });
+                cp.on('exit', (code) => {
+                    state.processExitCode = code;
+                    state.processExited = true;
+                    this._debug(`Exit code ${code} received from tool '${this.toolPath}'`);
+                    state.CheckComplete();
+                });
+                cp.on('close', (code) => {
+                    state.processExitCode = code;
+                    state.processExited = true;
+                    state.processClosed = true;
+                    this._debug(`STDIO streams have closed for tool '${this.toolPath}'`);
+                    state.CheckComplete();
+                });
+                state.on('done', (error, exitCode) => {
+                    if (stdbuffer.length > 0) {
+                        this.emit('stdline', stdbuffer);
+                    }
+                    if (errbuffer.length > 0) {
+                        this.emit('errline', errbuffer);
+                    }
+                    cp.removeAllListeners();
+                    if (error) {
+                        reject(error);
+                    }
+                    else {
+                        resolve(exitCode);
+                    }
+                });
+                if (this.options.input) {
+                    if (!cp.stdin) {
+                        throw new Error('child process missing stdin');
+                    }
+                    cp.stdin.end(this.options.input);
+                }
+            }));
+        });
+    }
+}
+/**
+ * Convert an arg string to an array of args. Handles escaping
+ *
+ * @param    argString   string of arguments
+ * @returns  string[]    array of arguments
+ */
+function argStringToArray(argString) {
+    const args = [];
+    let inQuotes = false;
+    let escaped = false;
+    let arg = '';
+    function append(c) {
+        // we only escape double quotes.
+        if (escaped && c !== '"') {
+            arg += '\\';
+        }
+        arg += c;
+        escaped = false;
+    }
+    for (let i = 0; i < argString.length; i++) {
+        const c = argString.charAt(i);
+        if (c === '"') {
+            if (!escaped) {
+                inQuotes = !inQuotes;
+            }
+            else {
+                append(c);
+            }
+            continue;
+        }
+        if (c === '\\' && escaped) {
+            append(c);
+            continue;
+        }
+        if (c === '\\' && inQuotes) {
+            escaped = true;
+            continue;
+        }
+        if (c === ' ' && !inQuotes) {
+            if (arg.length > 0) {
+                args.push(arg);
+                arg = '';
+            }
+            continue;
+        }
+        append(c);
+    }
+    if (arg.length > 0) {
+        args.push(arg.trim());
+    }
+    return args;
+}
+class ExecState extends events.EventEmitter {
+    constructor(options, toolPath) {
+        super();
+        this.processClosed = false; // tracks whether the process has exited and stdio is closed
+        this.processError = '';
+        this.processExitCode = 0;
+        this.processExited = false; // tracks whether the process has exited
+        this.processStderr = false; // tracks whether stderr was written to
+        this.delay = 10000; // 10 seconds
+        this.done = false;
+        this.timeout = null;
+        if (!toolPath) {
+            throw new Error('toolPath must not be empty');
+        }
+        this.options = options;
+        this.toolPath = toolPath;
+        if (options.delay) {
+            this.delay = options.delay;
+        }
+    }
+    CheckComplete() {
+        if (this.done) {
+            return;
+        }
+        if (this.processClosed) {
+            this._setResult();
+        }
+        else if (this.processExited) {
+            this.timeout = setTimeout$1(ExecState.HandleTimeout, this.delay, this);
+        }
+    }
+    _debug(message) {
+        this.emit('debug', message);
+    }
+    _setResult() {
+        // determine whether there is an error
+        let error;
+        if (this.processExited) {
+            if (this.processError) {
+                error = new Error(`There was an error when attempting to execute the process '${this.toolPath}'. This may indicate the process failed to start. Error: ${this.processError}`);
+            }
+            else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
+                error = new Error(`The process '${this.toolPath}' failed with exit code ${this.processExitCode}`);
+            }
+            else if (this.processStderr && this.options.failOnStdErr) {
+                error = new Error(`The process '${this.toolPath}' failed because one or more lines were written to the STDERR stream`);
+            }
+        }
+        // clear the timeout
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        this.done = true;
+        this.emit('done', error, this.processExitCode);
+    }
+    static HandleTimeout(state) {
+        if (state.done) {
+            return;
+        }
+        if (!state.processClosed && state.processExited) {
+            const message = `The STDIO streams did not close within ${state.delay / 1000} seconds of the exit event from process '${state.toolPath}'. This may indicate a child process inherited the STDIO streams and has not yet exited.`;
+            state._debug(message);
+        }
+        state._setResult();
+    }
+}
+
+var __awaiter$2 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+/**
+ * Exec a command.
+ * Output will be streamed to the live console.
+ * Returns promise with return code
+ *
+ * @param     commandLine        command to execute (can include additional args). Must be correctly escaped.
+ * @param     args               optional arguments for tool. Escaping is handled by the lib.
+ * @param     options            optional exec options.  See ExecOptions
+ * @returns   Promise<number>    exit code
+ */
+function exec(commandLine, args, options) {
+    return __awaiter$2(this, void 0, void 0, function* () {
+        const commandArgs = argStringToArray(commandLine);
+        if (commandArgs.length === 0) {
+            throw new Error(`Parameter 'commandLine' cannot be null or empty.`);
+        }
+        // Path to tool to execute should be first arg
+        const toolPath = commandArgs[0];
+        args = commandArgs.slice(1).concat(args || []);
+        const runner = new ToolRunner(toolPath, args, options);
+        return runner.exec();
+    });
+}
+
 var __awaiter$1 = (undefined && undefined.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -3239,6 +3855,242 @@ function getScannerDownloadURL({
 const scannerDirName = (version, flavor) =>
   `sonar-scanner-${version}-${flavor}`;
 
+/*
+ * sonarqube-scan-action
+ * Copyright (C) 2025 SonarSource SA
+ * mailto:info AT sonarsource DOT com
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ */
+
+
+const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
+const DEFAULT_KEYSERVER = "hkps://keyserver.ubuntu.com";
+const FALLBACK_KEYSERVER = "hkps://keys.openpgp.org";
+
+/**
+ * Verifies the GPG signature of a downloaded file
+ * @param {string} zipPath - Path to the downloaded ZIP file
+ * @param {string} signaturePath - Path to the .asc signature file
+ * @param {object} options - Verification options
+ * @param {string} options.keyFingerprint - GPG key fingerprint (default: SonarSource key)
+ * @param {string} options.keyserver - Primary keyserver URL (default: keyserver.ubuntu.com, with fallback to keys.openpgp.org)
+ * @returns {Promise<void>}
+ * @throws {Error} If GPG is unavailable or verification fails
+ */
+async function verifySignature(zipPath, signaturePath, options = {}) {
+  const keyFingerprint = options.keyFingerprint || SONARSOURCE_KEY_FINGERPRINT;
+  const keyserver = options.keyserver || DEFAULT_KEYSERVER;
+
+  if (!(await isGpgAvailable())) {
+    throw new Error(
+      "GPG is not available. Install GPG or set skipSignatureVerification: true"
+    );
+  }
+
+  let gpgHome;
+  try {
+    gpgHome = setupGpgHome();
+    debug(`Created temporary GPG home: ${gpgHome}`);
+
+    await importSonarSourceKey(gpgHome, keyFingerprint, keyserver);
+    info("✓ SonarSource public key imported successfully");
+
+    await runGpgVerify(zipPath, signaturePath, gpgHome);
+    info("✓ GPG signature verification passed");
+  } finally {
+    if (gpgHome) {
+      cleanupGpgHome(gpgHome);
+    }
+  }
+}
+
+/**
+ * Checks if GPG is available on the system
+ * @returns {Promise<boolean>} True if GPG is available
+ */
+async function isGpgAvailable() {
+  try {
+    const gpgCommand = getGpgCommand();
+    await execExports.exec(gpgCommand, ["--version"], {
+      silent: true,
+      ignoreReturnCode: false,
+    });
+    return true;
+  } catch (error) {
+    debug(`GPG not available: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Gets the GPG command for the current platform
+ * @returns {string} GPG command name
+ */
+function getGpgCommand() {
+  // GPG is available as 'gpg' on all GitHub-hosted runners
+  return "gpg";
+}
+
+/**
+ * Converts a Windows path to Unix-style path for GPG
+ * GPG on Windows (from Git for Windows) expects Unix-style paths
+ * @param {string} windowsPath - Windows path (e.g., C:\a\_temp\gpg-home)
+ * @returns {string} Unix-style path (e.g., /c/a/_temp/gpg-home)
+ */
+function convertToUnixPath(windowsPath) {
+  if (process.platform !== "win32") {
+    return windowsPath;
+  }
+
+  let unixPath = windowsPath.replaceAll('\\', "/");
+
+  unixPath = unixPath.replace(/^([A-Za-z]):/, (match, drive) => {
+    return `/${drive.toLowerCase()}`;
+  });
+
+  return unixPath;
+}
+
+/**
+ * Creates a temporary GPG home directory
+ * @returns {string} Path to the temporary GPG home directory
+ */
+function setupGpgHome() {
+  const tempDir = process.env.RUNNER_TEMP || os$1.tmpdir();
+  const gpgHome = path$1.join(tempDir, `gpg-home-${Date.now()}-${process.pid}`);
+
+  fs$1.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
+
+  return gpgHome;
+}
+
+/**
+ * Attempts to import a public key from a specific keyserver
+ * @param {string} gpgHome - Path to GPG home directory
+ * @param {string} keyFingerprint - Public key fingerprint
+ * @param {string} keyserver - Keyserver URL
+ * @returns {Promise<void>}
+ * @throws {Error} If key import fails
+ */
+async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
+  const gpgCommand = getGpgCommand();
+  const gpgHomePath = convertToUnixPath(gpgHome);
+
+  await execExports.exec(
+    gpgCommand,
+    [
+      "--homedir",
+      gpgHomePath,
+      "--batch",
+      "--keyserver",
+      keyserver,
+      "--recv-keys",
+      keyFingerprint,
+    ],
+    {
+      silent: false,
+    }
+  );
+}
+
+/**
+ * Imports the SonarSource public key from a keyserver
+ * @param {string} gpgHome - Path to GPG home directory
+ * @param {string} keyFingerprint - Public key fingerprint
+ * @param {string} keyserver - Keyserver URL
+ * @returns {Promise<void>}
+ * @throws {Error} If key import fails
+ */
+async function importSonarSourceKey(gpgHome, keyFingerprint, keyserver) {
+  let primaryError;
+
+  try {
+    info(`Importing SonarSource public key from ${keyserver}...`);
+    await tryImportKey(gpgHome, keyFingerprint, keyserver);
+    info(`Successfully imported key from ${keyserver}`);
+    return;
+  } catch (error) {
+    primaryError = error;
+    warning(
+      `Failed to import key from ${keyserver}: ${error.message}`
+    );
+  }
+
+  try {
+    info(`Attempting fallback keyserver ${FALLBACK_KEYSERVER}...`);
+    await tryImportKey(gpgHome, keyFingerprint, FALLBACK_KEYSERVER);
+    info(`Successfully imported key from fallback keyserver ${FALLBACK_KEYSERVER}`);
+  } catch (fallbackError) {
+    throw new Error(
+      `Failed to import SonarSource public key from all keyservers. ` +
+      `Primary (${keyserver}): ${primaryError.message}. ` +
+      `Fallback (${FALLBACK_KEYSERVER}): ${fallbackError.message}`
+    );
+  }
+}
+
+/**
+ * Runs GPG verification on the downloaded file
+ * @param {string} zipPath - Path to the ZIP file
+ * @param {string} signaturePath - Path to the signature file
+ * @param {string} gpgHome - Path to GPG home directory
+ * @returns {Promise<void>}
+ * @throws {Error} If verification fails
+ */
+async function runGpgVerify(zipPath, signaturePath, gpgHome) {
+  const gpgCommand = getGpgCommand();
+
+  try {
+    info("Verifying GPG signature...");
+    await execExports.exec(
+      gpgCommand,
+      [
+        "--homedir",
+        convertToUnixPath(gpgHome),
+        "--batch",
+        "--verify",
+        convertToUnixPath(signaturePath),
+        convertToUnixPath(zipPath),
+      ],
+      {
+        silent: false,
+      }
+    );
+  } catch (error) {
+    throw new Error(
+      `GPG signature verification failed - file may be corrupted or tampered: ${error.message}`
+    );
+  }
+}
+
+/**
+ * Cleans up the temporary GPG home directory
+ * @param {string} gpgHome - Path to GPG home directory
+ */
+function cleanupGpgHome(gpgHome) {
+  try {
+    if (fs$1.existsSync(gpgHome)) {
+      fs$1.rmSync(gpgHome, { recursive: true, force: true });
+      debug(`Cleaned up temporary GPG home: ${gpgHome}`);
+    }
+  } catch (error) {
+    warning(`Failed to cleanup temporary GPG home: ${error.message}`);
+  }
+}
+
 // SonarQube Scan Action
 // Copyright (C) SonarSource Sàrl
 // mailto:contact AT sonarsource DOT com
@@ -3266,8 +4118,9 @@ const TOOLNAME = "sonar-scanner-cli";
 async function installSonarScanner({
   scannerVersion,
   scannerBinariesUrl,
+  skipSignatureVerification = false,
 }) {
-  const flavor = getPlatformFlavor(os.platform(), os.arch());
+  const flavor = getPlatformFlavor(os$1.platform(), os$1.arch());
 
   // Check if tool is already cached
   let toolDir = find(TOOLNAME, scannerVersion, flavor);
@@ -3286,10 +4139,29 @@ async function installSonarScanner({
     info(`Downloading from: ${downloadUrl}`);
 
     const downloadPath = await downloadTool(downloadUrl);
+
+    if (skipSignatureVerification) {
+      warning("⚠ Skipping GPG signature verification (not recommended)");
+    } else {
+      const signatureUrl = `${downloadUrl}.asc`;
+      info(`Downloading signature from: ${signatureUrl}`);
+
+      let signaturePath;
+      try {
+        signaturePath = await downloadTool(signatureUrl);
+      } catch (error) {
+        throw new Error(
+          `Failed to download signature file from ${signatureUrl}: ${error.message}`
+        );
+      }
+
+      await verifySignature(downloadPath, signaturePath);
+    }
+
     const extractedPath = await extractZip(downloadPath);
 
     // Find the actual scanner directory inside the extracted folder
-    const scannerPath = path.join(
+    const scannerPath = path$1.join(
       extractedPath,
       scannerDirName(scannerVersion, flavor)
     );
@@ -3302,7 +4174,7 @@ async function installSonarScanner({
   }
 
   // Add the bin directory to PATH
-  const binDir = path.join(toolDir, "bin");
+  const binDir = path$1.join(toolDir, "bin");
   addPath(binDir);
 
   return toolDir;
@@ -3397,15 +4269,15 @@ async function runSonarScanner(
   }
 
   // The SSL folder may exist on an uncleaned self-hosted runner
-  const sslFolder = path.join(os.homedir(), ".sonar", "ssl");
-  const truststoreFile = path.join(sslFolder, "truststore.p12");
+  const sslFolder = path$1.join(os$1.homedir(), ".sonar", "ssl");
+  const truststoreFile = path$1.join(sslFolder, "truststore.p12");
 
   const keytoolParams = {
     scannerDir,
     truststoreFile,
   };
 
-  if (fs.existsSync(truststoreFile)) {
+  if (fs$1.existsSync(truststoreFile)) {
     let aliasSonarIsPresent = true;
 
     try {
@@ -3427,16 +4299,16 @@ async function runSonarScanner(
 
   if (sonarRootCert) {
     info("Adding SSL certificate to the Scanner truststore");
-    const tempCertPath = path.join(runnerTemp, "tmpcert.pem");
+    const tempCertPath = path$1.join(runnerTemp, "tmpcert.pem");
 
     try {
-      fs.unlinkSync(tempCertPath);
+      fs$1.unlinkSync(tempCertPath);
     } catch (_) {
       // File doesn't exist, ignore
     }
 
-    fs.writeFileSync(tempCertPath, sonarRootCert);
-    fs.mkdirSync(sslFolder, { recursive: true });
+    fs$1.writeFileSync(tempCertPath, sonarRootCert);
+    fs$1.mkdirSync(sslFolder, { recursive: true });
 
     await importCertificateToTruststore(keytoolParams, tempCertPath);
 
@@ -3457,7 +4329,7 @@ async function runSonarScanner(
   /**
    * Arguments are sanitized by `exec`
    */
-  await exec(scannerBin, scannerArgs);
+  await execExports.exec(scannerBin, scannerArgs);
 }
 
 /**
@@ -3483,7 +4355,7 @@ function executeKeytoolCommand({
     ...extraArgs,
   ];
 
-  return exec(`${scannerDir}/jre/bin/java`, baseArgs, options);
+  return execExports.exec(`${scannerDir}/jre/bin/java`, baseArgs, options);
 }
 
 function importCertificateToTruststore(keytoolParams, certPath) {
@@ -3596,8 +4468,9 @@ function getInputs() {
   const projectBaseDir = getInput("projectBaseDir");
   const scannerBinariesUrl = getInput("scannerBinariesUrl");
   const scannerVersion = getInput("scannerVersion");
+  const skipSignatureVerification = getBooleanInput("skipSignatureVerification");
 
-  return { args, projectBaseDir, scannerBinariesUrl, scannerVersion };
+  return { args, projectBaseDir, scannerBinariesUrl, scannerVersion, skipSignatureVerification };
 }
 
 /**
@@ -3633,7 +4506,7 @@ function runSanityChecks(inputs) {
 
 async function run() {
   try {
-    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl } =
+    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, skipSignatureVerification } =
       getInputs();
     const runnerEnv = getEnvVariables();
     const { sonarToken } = runnerEnv;
@@ -3643,6 +4516,7 @@ async function run() {
     const scannerDir = await installSonarScanner({
       scannerVersion,
       scannerBinariesUrl,
+      skipSignatureVerification,
     });
 
     await runSonarScanner(args, projectBaseDir, scannerDir, runnerEnv);
