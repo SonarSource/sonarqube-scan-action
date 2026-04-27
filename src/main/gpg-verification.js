@@ -20,9 +20,9 @@
 
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 // SonarSource public key fingerprint for verifying scanner signatures
 const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
