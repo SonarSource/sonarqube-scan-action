@@ -24,6 +24,10 @@ inputs:
     description: URL to download the Sonar Scanner CLI binaries from
     required: false
     default: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
+  skipSignatureVerification:
+    description: Skip GPG signature verification (not recommended for security)
+    required: false
+    default: "false"
 runs:
   using: node24
   main: dist/index.js

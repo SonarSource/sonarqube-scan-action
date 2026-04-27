@@ -11,6 +11,7 @@
   "license": "LGPL-3.0-only",
   "dependencies": {
     "@actions/core": "3.0.0",
+    "@actions/exec": "2.0.0",
     "@actions/github": "9.0.0",
     "@actions/tool-cache": "4.0.0",
     "string-argv": "0.3.2"

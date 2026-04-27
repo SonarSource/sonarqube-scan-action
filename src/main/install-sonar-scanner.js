@@ -25,6 +25,7 @@ import {
   getScannerDownloadURL,
   scannerDirName,
 } from "./utils";
+import { verifySignature } from "./gpg-verification";
 
 const TOOLNAME = "sonar-scanner-cli";
 
@@ -34,6 +35,7 @@ const TOOLNAME = "sonar-scanner-cli";
 export async function installSonarScanner({
   scannerVersion,
   scannerBinariesUrl,
+  skipSignatureVerification = false,
 }) {
   const flavor = getPlatformFlavor(os.platform(), os.arch());
 
@@ -54,6 +56,26 @@ export async function installSonarScanner({
     core.info(`Downloading from: ${downloadUrl}`);
 
     const downloadPath = await tc.downloadTool(downloadUrl);
+
+    // Download and verify signature (unless skipped)
+    if (skipSignatureVerification) {
+      core.warning("⚠ Skipping GPG signature verification (not recommended)");
+    } else {
+      const signatureUrl = `${downloadUrl}.asc`;
+      core.info(`Downloading signature from: ${signatureUrl}`);
+
+      let signaturePath;
+      try {
+        signaturePath = await tc.downloadTool(signatureUrl);
+      } catch (error) {
+        throw new Error(
+          `Failed to download signature file from ${signatureUrl}: ${error.message}`
+        );
+      }
+
+      await verifySignature(downloadPath, signaturePath);
+    }
+
     const extractedPath = await tc.extractZip(downloadPath);
 
     // Find the actual scanner directory inside the extracted folder
