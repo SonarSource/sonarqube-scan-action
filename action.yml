@@ -25,9 +25,9 @@ inputs:
     required: false
     default: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli
   skipSignatureVerification:
-    description: Skip GPG signature verification (not recommended for security)
+    description: Skip GPG signature verification (defaults to true temporarily while dirmngr dependency is resolved; set to false to enable verification)
     required: false
-    default: "false"
+    default: "true"
 runs:
   using: node24
   main: dist/index.js
