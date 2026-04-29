@@ -211,7 +211,7 @@ By default, the action verifies the OpenPGP signature of the SonarScanner CLI bi
 ```
 
 > [!NOTE]
-> Signature verification requires `dirmngr` to be installed on the runner. GitHub-hosted runners include it, but some self-hosted runners or containers may not.
+> Signature verification requires `gpg` and `dirmngr` to be installed on the runner. GitHub-hosted runners include both, but some self-hosted runners or containers may not.
 >
 > **Version history:**
 > - Introduced in **v7.2** with a default value of `true` to avoid breaking existing workflows on runners without `dirmngr`.
