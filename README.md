@@ -200,6 +200,23 @@ This can be useful when the runner executing the action is self-hosted and has r
     scannerBinariesUrl: https://my.custom.binaries.url.com/Distribution/sonar-scanner-cli/
 ```
 
+#### `skipSignatureVerification`
+
+By default, the action verifies the OpenPGP signature of the SonarScanner CLI binary before executing it. You can disable this verification using the `skipSignatureVerification` option:
+
+```yaml
+- uses: SonarSource/sonarqube-scan-action@<action version>
+  with:
+    skipSignatureVerification: true
+```
+
+> [!NOTE]
+> Signature verification requires `dirmngr` to be installed on the runner. GitHub-hosted runners include it, but some self-hosted runners or containers may not.
+>
+> **Version history:**
+> - Introduced in **v7.2** with a default value of `true` to avoid breaking existing workflows on runners without `dirmngr`.
+> - Changed to `false` by default in **v8** (breaking change). If your runner does not have `dirmngr` installed, set this option to `true` explicitly.
+
 More information about possible analysis parameters can be found:
 * in the [Analysis parameters page](https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/analysis-parameters/) of the SonarQube Server documentation
 * in the [Analysis parameters page](https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/analysis-parameters/) of the SonarQube Cloud documentation
