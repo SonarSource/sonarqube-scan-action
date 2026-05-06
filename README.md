@@ -213,6 +213,8 @@ By default, the action verifies the OpenPGP signature of the SonarScanner CLI bi
 > [!NOTE]
 > Signature verification requires `gpg` and `dirmngr` to be installed on the runner. GitHub-hosted runners include both, but some self-hosted runners or containers may not.
 >
+> If your runner accesses the internet through a proxy, the action automatically picks up the `HTTPS_PROXY` or `https_proxy` environment variable when fetching the public key from the keyserver. `HTTP_PROXY` is intentionally not used as a fallback, since keyservers are accessed over TLS (`hkps://`).
+>
 > **Version history:**
 > - Introduced in **v7.2** with a default value of `true` to avoid breaking existing workflows on runners without `dirmngr`.
 > - Changed to `false` by default in **v8** (breaking change). If your runner does not have `gpg` or `dirmngr` installed, set this option to `true` explicitly.

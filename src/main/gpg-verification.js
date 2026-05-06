@@ -126,6 +126,18 @@ export function setupGpgHome() {
 }
 
 /**
+ * Detects HTTPS proxy from environment variables.
+ * Checks both upper and lower case variants (HTTPS_PROXY, https_proxy).
+ * Only HTTPS proxy is used since keyservers use hkps:// (TLS).
+ * HTTP_PROXY is intentionally not used as a fallback to avoid routing
+ * HTTPS traffic through a proxy not intended for TLS connections.
+ * @returns {string|undefined} Proxy URL or undefined if not set
+ */
+export function getProxyFromEnv() {
+  return process.env.HTTPS_PROXY || process.env.https_proxy;
+}
+
+/**
  * Attempts to import a public key from a specific keyserver
  * @param {string} gpgHome - Path to GPG home directory
  * @param {string} keyFingerprint - Public key fingerprint
@@ -136,6 +148,11 @@ export function setupGpgHome() {
 async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
   const gpgCommand = getGpgCommand();
   const gpgHomePath = convertToUnixPath(gpgHome);
+  const proxyUrl = getProxyFromEnv();
+
+  if (proxyUrl) {
+    core.info(`Using proxy for keyserver access: ${proxyUrl}`);
+  }
 
   await exec.exec(
     gpgCommand,
@@ -145,6 +162,7 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
       "--batch",
       "--keyserver",
       keyserver,
+      ...(proxyUrl ? ["--keyserver-options", `http-proxy=${proxyUrl}`] : []),
       "--recv-keys",
       keyFingerprint,
     ],

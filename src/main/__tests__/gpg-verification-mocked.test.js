@@ -20,8 +20,8 @@
 
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
-import {afterEach, describe, it, mock} from "node:test";
-import {setupGpgHome,} from "../gpg-verification.js";
+import { afterEach, describe, it, mock } from "node:test";
+import { getProxyFromEnv, setupGpgHome, } from "../gpg-verification.js";
 
 /**
  * Helper function to create a temporary GPG home directory for testing.
@@ -481,6 +481,233 @@ describe("gpg-verification with mocked exec", () => {
           message: /Failed to import SonarSource public key from all keyservers/
         }
       );
+    });
+  });
+
+  describe("getProxyFromEnv", () => {
+    const proxyVars = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"];
+
+    function clearProxyEnv() {
+      for (const v of proxyVars) {
+        delete process.env[v];
+      }
+    }
+
+    afterEach(() => {
+      clearProxyEnv();
+    });
+
+    it("should return undefined when no proxy is set", () => {
+      clearProxyEnv();
+      assert.equal(getProxyFromEnv(), undefined);
+    });
+
+    it("should prefer HTTPS_PROXY over https_proxy", () => {
+      clearProxyEnv();
+      process.env.HTTPS_PROXY = "http://proxy-https:8080";
+      process.env.https_proxy = "http://proxy-lower:8080";
+      assert.equal(getProxyFromEnv(), "http://proxy-https:8080");
+    });
+
+    it("should use https_proxy (lowercase)", () => {
+      clearProxyEnv();
+      process.env.https_proxy = "http://proxy-lower:8080";
+      assert.equal(getProxyFromEnv(), "http://proxy-lower:8080");
+    });
+
+    it("should not fall back to HTTP_PROXY", () => {
+      clearProxyEnv();
+      process.env.HTTP_PROXY = "http://proxy-http:3128";
+      assert.equal(getProxyFromEnv(), undefined);
+    });
+
+    it("should not fall back to http_proxy (lowercase)", () => {
+      clearProxyEnv();
+      process.env.http_proxy = "http://proxy-lower-http:3128";
+      assert.equal(getProxyFromEnv(), undefined);
+    });
+
+    it("should ignore HTTP_PROXY when only HTTP proxy is configured", () => {
+      clearProxyEnv();
+      process.env.HTTP_PROXY = "http://http-only-proxy:3128";
+      process.env.http_proxy = "http://http-only-proxy:3128";
+      assert.equal(getProxyFromEnv(), undefined);
+    });
+  });
+
+  describe("tryImportKey with proxy", () => {
+    const proxyVars = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"];
+
+    function clearProxyEnv() {
+      for (const v of proxyVars) {
+        delete process.env[v];
+      }
+    }
+
+    afterEach(() => {
+      clearProxyEnv();
+    });
+
+    it("should not pass --keyserver-options when no proxy env is set", async (t) => {
+      clearProxyEnv();
+
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args) => {
+        execCalls.push({ command, args });
+        return 0;
+      });
+
+      t.mock.module("@actions/exec", {
+        namedExports: {
+          exec: execFn,
+        },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=no-proxy");
+
+      const gpgHome = createTrackedGpgHome(tempDirs);
+      const keyserver = "hkps://keyserver.ubuntu.com";
+      const keyFingerprint = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
+
+      await importSonarSourceKey(gpgHome, keyFingerprint, keyserver);
+
+      assert.equal(execCalls.length, 1);
+      const args = execCalls[0].args;
+      assert.ok(!args.includes("--keyserver-options"), "Should NOT include --keyserver-options");
+    });
+
+    it("should use HTTPS_PROXY when set", async (t) => {
+      clearProxyEnv();
+      process.env.HTTPS_PROXY = "http://corporate-proxy:8080";
+
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args) => {
+        execCalls.push({ command, args });
+        return 0;
+      });
+
+      t.mock.module("@actions/exec", {
+        namedExports: {
+          exec: execFn,
+        },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-https-upper");
+
+      const gpgHome = createTrackedGpgHome(tempDirs);
+      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
+
+      const args = execCalls[0].args;
+      const optIdx = args.indexOf("--keyserver-options");
+      assert.ok(optIdx !== -1, "Should include --keyserver-options");
+      assert.equal(args[optIdx + 1], "http-proxy=http://corporate-proxy:8080");
+    });
+
+    it("should use https_proxy (lowercase) when set", async (t) => {
+      clearProxyEnv();
+      process.env.https_proxy = "http://lowercase-proxy:3128";
+
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args) => {
+        execCalls.push({ command, args });
+        return 0;
+      });
+
+      t.mock.module("@actions/exec", {
+        namedExports: {
+          exec: execFn,
+        },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-https-lower");
+
+      const gpgHome = createTrackedGpgHome(tempDirs);
+      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
+
+      const args = execCalls[0].args;
+      const optIdx = args.indexOf("--keyserver-options");
+      assert.ok(optIdx !== -1);
+      assert.equal(args[optIdx + 1], "http-proxy=http://lowercase-proxy:3128");
+    });
+
+    it("should not use proxy when only HTTP_PROXY is set", async (t) => {
+      clearProxyEnv();
+      process.env.HTTP_PROXY = "http://http-only-proxy:9090";
+
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args) => {
+        execCalls.push({ command, args });
+        return 0;
+      });
+
+      t.mock.module("@actions/exec", {
+        namedExports: {
+          exec: execFn,
+        },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-http-upper");
+
+      const gpgHome = createTrackedGpgHome(tempDirs);
+      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
+
+      const args = execCalls[0].args;
+      assert.ok(!args.includes("--keyserver-options"), "Should NOT include --keyserver-options when only HTTP_PROXY is set");
+    });
+
+    it("should not use proxy when only http_proxy (lowercase) is set", async (t) => {
+      clearProxyEnv();
+      process.env.http_proxy = "http://last-resort-proxy:1080";
+
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args) => {
+        execCalls.push({ command, args });
+        return 0;
+      });
+
+      t.mock.module("@actions/exec", {
+        namedExports: {
+          exec: execFn,
+        },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-http-lower");
+
+      const gpgHome = createTrackedGpgHome(tempDirs);
+      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
+
+      const args = execCalls[0].args;
+      assert.ok(!args.includes("--keyserver-options"), "Should NOT include --keyserver-options when only http_proxy is set");
+    });
+
+    it("should prefer HTTPS_PROXY over https_proxy and ignore HTTP variants", async (t) => {
+      clearProxyEnv();
+      process.env.HTTPS_PROXY = "http://preferred:8080";
+      process.env.https_proxy = "http://not-this-one:8080";
+      process.env.HTTP_PROXY = "http://also-not:3128";
+      process.env.http_proxy = "http://nope:1080";
+
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args) => {
+        execCalls.push({ command, args });
+        return 0;
+      });
+
+      t.mock.module("@actions/exec", {
+        namedExports: {
+          exec: execFn,
+        },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-precedence");
+
+      const gpgHome = createTrackedGpgHome(tempDirs);
+      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
+
+      const args = execCalls[0].args;
+      const optIdx = args.indexOf("--keyserver-options");
+      assert.ok(optIdx !== -1);
+      assert.equal(args[optIdx + 1], "http-proxy=http://preferred:8080");
     });
   });
 });
