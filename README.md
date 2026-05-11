@@ -469,6 +469,8 @@ When running the action in a self-hosted runner or container, please ensure that
 
 * **curl** or **wget**
 * **unzip**
+* **gpg**
+* **dirmngr**
 
 ### Additional information
 
