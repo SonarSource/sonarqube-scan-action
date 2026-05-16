@@ -19,7 +19,7 @@ inputs:
     description: Version of the Sonar Scanner CLI to use
     required: false
     # to be kept in sync with sonar-scanner-version
-    default: 8.0.1.6346
+    default: 8.1.0.6389
   scannerBinariesUrl:
     description: URL to download the Sonar Scanner CLI binaries from
     required: false
