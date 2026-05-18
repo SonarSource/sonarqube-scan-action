@@ -151,7 +151,11 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
   const proxyUrl = getProxyFromEnv();
 
   if (proxyUrl) {
-    core.info(`Using proxy for keyserver access: ${proxyUrl}`);
+    // The URL may carry credentials (e.g. http://user:pass@proxy:8080).
+    // Register it as a secret so future logging (here or downstream) is
+    // automatically redacted
+    core.setSecret(proxyUrl);
+    core.info("Using HTTPS_PROXY for keyserver access");
   }
 
   await exec.exec(

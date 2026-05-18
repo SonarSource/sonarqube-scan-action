@@ -1,4 +1,4 @@
-import { i as isRooted, w as which, e as exists, a as info, d as debug, m as mkdirP, c as cp, H as HttpClient, r as rmRF, b as isDebug, f as execExports, g as warning, h as addPath, s as setFailed, j as getInput, k as getBooleanInput, l as core } from './exec-zlpfwmpH.js';
+import { i as isRooted, w as which, e as exists, a as info, d as debug, m as mkdirP, c as cp, H as HttpClient, r as rmRF, b as isDebug, f as execExports, g as warning, s as setSecret, h as addPath, j as setFailed, k as getInput, l as getBooleanInput, n as core } from './exec-BeYcktvA.js';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -4003,7 +4003,11 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
   const proxyUrl = getProxyFromEnv();
 
   if (proxyUrl) {
-    info(`Using proxy for keyserver access: ${proxyUrl}`);
+    // The URL may carry credentials (e.g. http://user:pass@proxy:8080).
+    // Register it as a secret so future logging (here or downstream) is
+    // automatically redacted
+    setSecret(proxyUrl);
+    info("Using HTTPS_PROXY for keyserver access");
   }
 
   await execExports.exec(

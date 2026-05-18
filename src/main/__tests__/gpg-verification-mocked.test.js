@@ -38,6 +38,14 @@ function createTrackedGpgHome(tempDirs) {
 describe("gpg-verification with mocked exec", () => {
   let tempDirs = [];
 
+  const proxyVars = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"];
+
+  function clearProxyEnv() {
+    for (const v of proxyVars) {
+      delete process.env[v];
+    }
+  }
+
   afterEach(() => {
     // Clean up temporary directories
     tempDirs.forEach((dir) => {
@@ -485,14 +493,6 @@ describe("gpg-verification with mocked exec", () => {
   });
 
   describe("getProxyFromEnv", () => {
-    const proxyVars = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"];
-
-    function clearProxyEnv() {
-      for (const v of proxyVars) {
-        delete process.env[v];
-      }
-    }
-
     afterEach(() => {
       clearProxyEnv();
     });
@@ -536,14 +536,6 @@ describe("gpg-verification with mocked exec", () => {
   });
 
   describe("tryImportKey with proxy", () => {
-    const proxyVars = ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"];
-
-    function clearProxyEnv() {
-      for (const v of proxyVars) {
-        delete process.env[v];
-      }
-    }
-
     afterEach(() => {
       clearProxyEnv();
     });
