@@ -1,4 +1,4 @@
-import { i as isRooted, w as which, e as exists, a as info, d as debug, m as mkdirP, c as cp, H as HttpClient, r as rmRF, b as isDebug, f as execExports, g as warning, h as addPath, s as setFailed, j as getInput, k as getBooleanInput, l as core } from './exec-zlpfwmpH.js';
+import { i as isRooted, w as which, e as exists, a as info, d as debug, m as mkdirP, c as cp, H as HttpClient, r as rmRF, b as isDebug, f as execExports, g as warning, s as setSecret, h as addPath, j as setFailed, k as getInput, l as getBooleanInput, n as core } from './exec-BeYcktvA.js';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -3978,6 +3978,18 @@ function setupGpgHome() {
 }
 
 /**
+ * Detects HTTPS proxy from environment variables.
+ * Checks both upper and lower case variants (HTTPS_PROXY, https_proxy).
+ * Only HTTPS proxy is used since keyservers use hkps:// (TLS).
+ * HTTP_PROXY is intentionally not used as a fallback to avoid routing
+ * HTTPS traffic through a proxy not intended for TLS connections.
+ * @returns {string|undefined} Proxy URL or undefined if not set
+ */
+function getProxyFromEnv() {
+  return process.env.HTTPS_PROXY || process.env.https_proxy;
+}
+
+/**
  * Attempts to import a public key from a specific keyserver
  * @param {string} gpgHome - Path to GPG home directory
  * @param {string} keyFingerprint - Public key fingerprint
@@ -3988,6 +4000,15 @@ function setupGpgHome() {
 async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
   const gpgCommand = getGpgCommand();
   const gpgHomePath = convertToUnixPath(gpgHome);
+  const proxyUrl = getProxyFromEnv();
+
+  if (proxyUrl) {
+    // The URL may carry credentials (e.g. http://user:pass@proxy:8080).
+    // Register it as a secret so future logging (here or downstream) is
+    // automatically redacted
+    setSecret(proxyUrl);
+    info("Using HTTPS_PROXY for keyserver access");
+  }
 
   await execExports.exec(
     gpgCommand,
@@ -3997,6 +4018,7 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
       "--batch",
       "--keyserver",
       keyserver,
+      ...(proxyUrl ? ["--keyserver-options", `http-proxy=${proxyUrl}`] : []),
       "--recv-keys",
       keyFingerprint,
     ],

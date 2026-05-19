@@ -16,8 +16,22 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+import { readFileSync } from "node:fs";
 import commonjs from "@rollup/plugin-commonjs";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
+
+// Ensures CRLF line endings from a Windows checkout don't leak into the
+// bundle or the source map's sourcesContent, so the build is reproducible
+// across operating systems. Uses `load` rather than `transform` so the
+// normalized text is also what Rollup embeds in sourcesContent.
+const normalizeLineEndings = {
+  name: "normalize-line-endings",
+  load(id) {
+    if (id.startsWith("\0") || id.includes("?")) return null;
+    const code = readFileSync(id, "utf8");
+    return code.includes("\r") ? code.replaceAll("\r\n", "\n") : null;
+  },
+};
 
 const config = {
   input: [
@@ -30,7 +44,7 @@ const config = {
     format: "es",
     sourcemap: true,
   },
-  plugins: [commonjs(), nodeResolve({ preferBuiltins: true })],
+  plugins: [normalizeLineEndings, commonjs(), nodeResolve({ preferBuiltins: true })],
 };
 
 export default config;
