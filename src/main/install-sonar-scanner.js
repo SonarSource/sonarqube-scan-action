@@ -24,8 +24,8 @@ import {
   getPlatformFlavor,
   getScannerDownloadURL,
   scannerDirName,
-} from "./utils";
-import { verifySignature } from "./gpg-verification";
+} from "./utils.js";
+import { verifySignature } from "./gpg-verification.js";
 
 const TOOLNAME = "sonar-scanner-cli";
 
@@ -35,6 +35,7 @@ const TOOLNAME = "sonar-scanner-cli";
 export async function installSonarScanner({
   scannerVersion,
   scannerBinariesUrl,
+  scannerBinariesAuthHeader,
   skipSignatureVerification = false,
 }) {
   const flavor = getPlatformFlavor(os.platform(), os.arch());
@@ -55,7 +56,7 @@ export async function installSonarScanner({
 
     core.info(`Downloading from: ${downloadUrl}`);
 
-    const downloadPath = await tc.downloadTool(downloadUrl);
+    const downloadPath = await tc.downloadTool(downloadUrl, undefined, scannerBinariesAuthHeader);
 
     if (skipSignatureVerification) {
       core.warning("⚠ Skipping GPG signature verification (not recommended)");
@@ -65,7 +66,7 @@ export async function installSonarScanner({
 
       let signaturePath;
       try {
-        signaturePath = await tc.downloadTool(signatureUrl);
+        signaturePath = await tc.downloadTool(signatureUrl, undefined, scannerBinariesAuthHeader);
       } catch (error) {
         throw new Error(
           `Failed to download signature file from ${signatureUrl}: ${error.message}`
