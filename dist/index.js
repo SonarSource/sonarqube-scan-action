@@ -3503,6 +3503,13 @@ function downloadToolAttempt(url, dest, auth, headers) {
         const http = new HttpClient(userAgent, [], {
             allowRetries: false
         });
+        if (auth) {
+            debug('set auth');
+            if (headers === undefined) {
+                headers = {};
+            }
+            headers.authorization = auth;
+        }
         const response = yield http.get(url, headers);
         if (response.message.statusCode !== 200) {
             const err = new HTTPError(response.message.statusCode);
@@ -4140,6 +4147,7 @@ const TOOLNAME = "sonar-scanner-cli";
 async function installSonarScanner({
   scannerVersion,
   scannerBinariesUrl,
+  scannerBinariesAuthHeader,
   skipSignatureVerification = false,
 }) {
   const flavor = getPlatformFlavor(os$1.platform(), os$1.arch());
@@ -4160,7 +4168,7 @@ async function installSonarScanner({
 
     info(`Downloading from: ${downloadUrl}`);
 
-    const downloadPath = await downloadTool(downloadUrl);
+    const downloadPath = await downloadTool(downloadUrl, undefined, scannerBinariesAuthHeader);
 
     if (skipSignatureVerification) {
       warning("⚠ Skipping GPG signature verification (not recommended)");
@@ -4170,7 +4178,7 @@ async function installSonarScanner({
 
       let signaturePath;
       try {
-        signaturePath = await downloadTool(signatureUrl);
+        signaturePath = await downloadTool(signatureUrl, undefined, scannerBinariesAuthHeader);
       } catch (error) {
         throw new Error(
           `Failed to download signature file from ${signatureUrl}: ${error.message}`
@@ -4489,10 +4497,14 @@ function getInputs() {
   const args = getInput("args");
   const projectBaseDir = getInput("projectBaseDir");
   const scannerBinariesUrl = getInput("scannerBinariesUrl");
+  const scannerBinariesAuthHeader = getInput("scannerBinariesAuthHeader") || undefined;
+  if (scannerBinariesAuthHeader) {
+    setSecret(scannerBinariesAuthHeader);
+  }
   const scannerVersion = getInput("scannerVersion");
   const skipSignatureVerification = getBooleanInput("skipSignatureVerification");
 
-  return { args, projectBaseDir, scannerBinariesUrl, scannerVersion, skipSignatureVerification };
+  return { args, projectBaseDir, scannerBinariesUrl, scannerBinariesAuthHeader, scannerVersion, skipSignatureVerification };
 }
 
 /**
@@ -4528,7 +4540,7 @@ function runSanityChecks(inputs) {
 
 async function run() {
   try {
-    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, skipSignatureVerification } =
+    const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, scannerBinariesAuthHeader, skipSignatureVerification } =
       getInputs();
     const runnerEnv = getEnvVariables();
     const { sonarToken } = runnerEnv;
@@ -4538,6 +4550,7 @@ async function run() {
     const scannerDir = await installSonarScanner({
       scannerVersion,
       scannerBinariesUrl,
+      scannerBinariesAuthHeader,
       skipSignatureVerification,
     });
 

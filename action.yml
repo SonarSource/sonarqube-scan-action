@@ -28,6 +28,13 @@ inputs:
     description: Skip GPG signature verification (not recommended for security)
     required: false
     default: "false"
+  scannerBinariesAuthHeader:
+    description: >
+      Authorization header value to use when downloading the SonarScanner CLI binaries
+      (e.g. 'Bearer mytoken' or 'Basic base64creds'). Use this when scannerBinariesUrl
+      points to a private server that requires authentication.
+    required: false
+    default: ""
 runs:
   using: node24
   main: dist/index.js
