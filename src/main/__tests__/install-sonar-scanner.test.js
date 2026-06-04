@@ -20,6 +20,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
+import nodeFsPromises from "node:fs/promises";
 
 const SCANNER_VERSION = "6.2.0.4584";
 const SCANNER_SEMVER_VERSION = "6.2.0-build.4584";
@@ -37,6 +38,15 @@ function mockUtils(t) {
   });
 }
 
+function mockFsPromises(t) {
+  t.mock.module("node:fs/promises", {
+    namedExports: {
+      ...nodeFsPromises,
+      rename: mock.fn(async () => {}),
+    },
+  });
+}
+
 describe("installSonarScanner", () => {
   it("should forward scannerBinariesAuthHeader to both binary and signature downloads", async (t) => {
     const downloadCalls = [];
@@ -46,6 +56,7 @@ describe("installSonarScanner", () => {
     });
 
     mockUtils(t);
+    mockFsPromises(t);
 
     t.mock.module("@actions/tool-cache", {
       namedExports: {
@@ -94,6 +105,7 @@ describe("installSonarScanner", () => {
     });
 
     mockUtils(t);
+    mockFsPromises(t);
 
     t.mock.module("@actions/tool-cache", {
       namedExports: {
@@ -140,6 +152,7 @@ describe("installSonarScanner", () => {
     });
 
     mockUtils(t);
+    mockFsPromises(t);
 
     t.mock.module("@actions/tool-cache", {
       namedExports: {
@@ -178,6 +191,7 @@ describe("installSonarScanner", () => {
     const cacheDirFn = mock.fn(async () => "/tmp/cached");
 
     mockUtils(t);
+    mockFsPromises(t);
 
     t.mock.module("@actions/tool-cache", {
       namedExports: {
@@ -215,6 +229,120 @@ describe("installSonarScanner", () => {
       "tc.find should be called with semver-compatible version");
     assert.equal(cacheDirFn.mock.calls[0].arguments[2], SCANNER_SEMVER_VERSION,
       "tc.cacheDir should be called with semver-compatible version");
+  });
+
+  it("should rename downloaded file to add .zip extension before extraction", async (t) => {
+    const renameCalls = [];
+    const extractZipCalls = [];
+
+    mockUtils(t);
+
+    t.mock.module("node:fs/promises", {
+      namedExports: {
+        ...nodeFsPromises,
+        rename: mock.fn(async (src, dest) => {
+          renameCalls.push({ src, dest });
+        }),
+      },
+    });
+
+    t.mock.module("@actions/tool-cache", {
+      namedExports: {
+        find: mock.fn(() => null),
+        downloadTool: mock.fn(async () => "/tmp/downloaded-file"),
+        extractZip: mock.fn(async (p) => {
+          extractZipCalls.push(p);
+          return "/tmp/extracted";
+        }),
+        cacheDir: mock.fn(async () => "/tmp/cached"),
+      },
+    });
+
+    t.mock.module("@actions/core", {
+      namedExports: {
+        info: mock.fn(),
+        warning: mock.fn(),
+        addPath: mock.fn(),
+      },
+    });
+
+    t.mock.module("../gpg-verification.js", {
+      namedExports: {
+        verifySignature: mock.fn(async () => {}),
+      },
+    });
+
+    const { installSonarScanner } = await import(
+      `../install-sonar-scanner.js?test=rename-zip`
+    );
+
+    await installSonarScanner({
+      scannerVersion: SCANNER_VERSION,
+      scannerBinariesUrl: BINARIES_URL,
+      skipSignatureVerification: true,
+    });
+
+    assert.equal(renameCalls.length, 1, "Should rename downloaded file");
+    assert.equal(renameCalls[0].src, "/tmp/downloaded-file");
+    assert.equal(renameCalls[0].dest, "/tmp/downloaded-file.zip");
+    assert.equal(extractZipCalls.length, 1, "Should call extractZip once");
+    assert.equal(extractZipCalls[0], "/tmp/downloaded-file.zip", "Should extract the renamed file");
+  });
+
+  it("should not rename downloaded file when it already has .zip extension", async (t) => {
+    const renameCalls = [];
+    const extractZipCalls = [];
+
+    mockUtils(t);
+
+    t.mock.module("node:fs/promises", {
+      namedExports: {
+        ...nodeFsPromises,
+        rename: mock.fn(async (src, dest) => {
+          renameCalls.push({ src, dest });
+        }),
+      },
+    });
+
+    t.mock.module("@actions/tool-cache", {
+      namedExports: {
+        find: mock.fn(() => null),
+        downloadTool: mock.fn(async () => "/tmp/downloaded-file.zip"),
+        extractZip: mock.fn(async (p) => {
+          extractZipCalls.push(p);
+          return "/tmp/extracted";
+        }),
+        cacheDir: mock.fn(async () => "/tmp/cached"),
+      },
+    });
+
+    t.mock.module("@actions/core", {
+      namedExports: {
+        info: mock.fn(),
+        warning: mock.fn(),
+        addPath: mock.fn(),
+      },
+    });
+
+    t.mock.module("../gpg-verification.js", {
+      namedExports: {
+        verifySignature: mock.fn(async () => {}),
+      },
+    });
+
+    const { installSonarScanner } = await import(
+      `../install-sonar-scanner.js?test=no-rename-zip`
+    );
+
+    await installSonarScanner({
+      scannerVersion: SCANNER_VERSION,
+      scannerBinariesUrl: BINARIES_URL,
+      skipSignatureVerification: true,
+    });
+
+    assert.equal(renameCalls.length, 0, "Should not rename when already .zip");
+    assert.equal(extractZipCalls.length, 1, "Should call extractZip once");
+    assert.equal(extractZipCalls[0], "/tmp/downloaded-file.zip", "Should extract original file");
   });
 
   it("should use cached tool when available and skip download", async (t) => {
