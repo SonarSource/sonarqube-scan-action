@@ -22,6 +22,7 @@ import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
 const SCANNER_VERSION = "6.2.0.4584";
+const SCANNER_SEMVER_VERSION = "6.2.0-build.4584";
 const BINARIES_URL = "https://my.artifactory.example.com/sonar-scanner-cli";
 const BINARY_DOWNLOAD_URL = `${BINARIES_URL}/sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip`;
 
@@ -31,6 +32,7 @@ function mockUtils(t) {
       getPlatformFlavor: mock.fn(() => "linux-x64"),
       getScannerDownloadURL: mock.fn(() => BINARY_DOWNLOAD_URL),
       scannerDirName: mock.fn(() => `sonar-scanner-${SCANNER_VERSION}-linux-x64`),
+      toSemVer: mock.fn(() => SCANNER_SEMVER_VERSION),
     },
   });
 }
@@ -169,6 +171,50 @@ describe("installSonarScanner", () => {
 
     assert.equal(downloadCalls.length, 1, "Should only download binary, not signature");
     assert.equal(downloadCalls[0].auth, "Bearer mytoken");
+  });
+
+  it("should use semver-compatible version for tool-cache find and cacheDir", async (t) => {
+    const findFn = mock.fn(() => null);
+    const cacheDirFn = mock.fn(async () => "/tmp/cached");
+
+    mockUtils(t);
+
+    t.mock.module("@actions/tool-cache", {
+      namedExports: {
+        find: findFn,
+        downloadTool: mock.fn(async () => "/tmp/downloaded"),
+        extractZip: mock.fn(async () => "/tmp/extracted"),
+        cacheDir: cacheDirFn,
+      },
+    });
+
+    t.mock.module("@actions/core", {
+      namedExports: {
+        info: mock.fn(),
+        warning: mock.fn(),
+        addPath: mock.fn(),
+      },
+    });
+
+    t.mock.module("../gpg-verification.js", {
+      namedExports: {
+        verifySignature: mock.fn(async () => {}),
+      },
+    });
+
+    const { installSonarScanner } = await import(
+      `../install-sonar-scanner.js?test=semver-version`
+    );
+
+    await installSonarScanner({
+      scannerVersion: SCANNER_VERSION,
+      scannerBinariesUrl: BINARIES_URL,
+    });
+
+    assert.equal(findFn.mock.calls[0].arguments[1], SCANNER_SEMVER_VERSION,
+      "tc.find should be called with semver-compatible version");
+    assert.equal(cacheDirFn.mock.calls[0].arguments[2], SCANNER_SEMVER_VERSION,
+      "tc.cacheDir should be called with semver-compatible version");
   });
 
   it("should use cached tool when available and skip download", async (t) => {

@@ -24,6 +24,7 @@ import {
   getPlatformFlavor,
   getScannerDownloadURL,
   scannerDirName,
+  toSemVer,
 } from "./utils.js";
 import { verifySignature } from "./gpg-verification.js";
 
@@ -39,9 +40,10 @@ export async function installSonarScanner({
   skipSignatureVerification = false,
 }) {
   const flavor = getPlatformFlavor(os.platform(), os.arch());
+  const semVerVersion = toSemVer(scannerVersion);
 
   // Check if tool is already cached
-  let toolDir = tc.find(TOOLNAME, scannerVersion, flavor);
+  let toolDir = tc.find(TOOLNAME, semVerVersion, flavor);
 
   if (!toolDir) {
     core.info(
@@ -84,7 +86,7 @@ export async function installSonarScanner({
       scannerDirName(scannerVersion, flavor)
     );
 
-    toolDir = await tc.cacheDir(scannerPath, TOOLNAME, scannerVersion, flavor);
+    toolDir = await tc.cacheDir(scannerPath, TOOLNAME, semVerVersion, flavor);
 
     core.info(`Sonar Scanner CLI cached to: ${toolDir}`);
   } else {
