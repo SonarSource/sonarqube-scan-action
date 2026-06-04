@@ -79,7 +79,15 @@ async function run() {
     const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, scannerBinariesAuthHeader, skipSignatureVerification } =
       getInputs();
     const runnerEnv = getEnvVariables();
-    const { sonarToken } = runnerEnv;
+    const { sonarToken, sonarcloudUrl } = runnerEnv;
+
+    if (sonarcloudUrl) {
+      core.warning(
+        "The SONARCLOUD_URL environment variable is deprecated and will be removed in a future version. " +
+          "Regular users should not set it; use SONAR_REGION=us for the US region. " +
+          "For advanced needs, pass -Dsonar.scanner.sonarcloudUrl and -Dsonar.scanner.apiBaseUrl via the args input."
+      );
+    }
 
     runSanityChecks({ projectBaseDir, scannerVersion, sonarToken });
 
