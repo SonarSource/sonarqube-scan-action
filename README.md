@@ -483,10 +483,10 @@ See also [example configurations of C++ projects for SonarQube Server](https://g
 
 When running the action in a self-hosted runner or container, please ensure that the following programs are installed:
 
-* **curl** or **wget**
-* **unzip**
 * **gpg**
 * **dirmngr**
+
+Note: `gpg` and `dirmngr` are only required for GPG signature verification (enabled by default). They can be omitted when setting `skipSignatureVerification: true`.
 
 ### Additional information
 

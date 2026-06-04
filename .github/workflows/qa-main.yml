@@ -245,9 +245,9 @@ jobs:
       - name: Assert Sonar Scanner CLI was not executed
         run: |
           ./test/assertFileDoesntExist ./output.properties
-  scannerBinariesUrlIsEscapedWithWget:
+  scannerBinariesUrlCommandInjectionTest:
     name: >
-      'scannerBinariesUrl' is escaped with wget so special chars are not injected in the download command
+      'scannerBinariesUrl' does not allow command injection via semicolons
     runs-on: github-ubuntu-latest-s
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -266,22 +266,14 @@ jobs:
       - name: Assert file.txt does not exist
         run: |
           ./test/assertFileDoesntExist "$RUNNER_TEMP/sonarscanner/file.txt"
-  scannerBinariesUrlIsEscapedWithCurl:
+  scannerBinariesUrlCommandInjectionWithSpacesTest:
     name: >
-      'scannerBinariesUrl' is escaped with curl so special chars are not injected in the download command
+      'scannerBinariesUrl' does not allow command injection via spaces and quotes
     runs-on: github-ubuntu-latest-s
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Remove wget
-        run: sudo apt-get remove -y wget
-      - name: Assert wget is not available
-        run: |
-          if command -v wget 2>&1 >/dev/null
-          then
-            exit 1
-          fi
       - name: Run action with scannerBinariesUrl
         id: runTest
         uses: ./
@@ -472,22 +464,14 @@ jobs:
         run: |
           ./test/assertFileContains ./output.properties "sonar.host.url=mirror.sonarcloud.io"
           ./test/assertFileContains ./output.properties "sonar.scanner.sonarcloudUrl=mirror.sonarcloud.io"
-  curlPerformsRedirect:
+  scannerBinariesUrlRedirectFollowed:
     name: >
-      curl performs redirect when scannerBinariesUrl returns 3xx
+      scannerBinariesUrl redirect (3xx) is followed
     runs-on: github-ubuntu-latest-s
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Remove wget
-        run: sudo apt-get remove -y wget
-      - name: Assert wget is not available
-        run: |
-          if command -v wget 2>&1 >/dev/null
-          then
-            exit 1
-          fi
       - name: Generate SSL certificates for nginx
         run: ./generate-ssl.sh
         working-directory: .github/qa-nginx-redirecting
@@ -841,8 +825,8 @@ jobs:
       - projectBaseDirInputTest
       - scannerVersionTest
       - scannerBinariesUrlTest
-      - scannerBinariesUrlIsEscapedWithWget
-      - scannerBinariesUrlIsEscapedWithCurl
+      - scannerBinariesUrlCommandInjectionTest
+      - scannerBinariesUrlCommandInjectionWithSpacesTest
       - dontFailGradleTest
       - dontFailGradleKotlinTest
       - dontFailMavenTest
@@ -850,7 +834,7 @@ jobs:
       - runnerDebugUsedTest
       - runAnalysisWithCacheTest
       - overrideSonarcloudUrlTest
-      - curlPerformsRedirect
+      - scannerBinariesUrlRedirectFollowed
       - useSslCertificate
       - analysisWithSslCertificate
       - updateTruststoreWhenPresent
