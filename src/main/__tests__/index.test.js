@@ -48,6 +48,85 @@ function mockDependencies(t, { getInputFn, setSecretFn }) {
   });
 }
 
+describe("SONARCLOUD_URL deprecation", () => {
+  it("should warn when SONARCLOUD_URL is set", async (t) => {
+    const warningFn = mock.fn();
+    const getInputFn = mock.fn(() => "");
+
+    t.mock.module("@actions/core", {
+      namedExports: {
+        getInput: getInputFn,
+        getBooleanInput: mock.fn(() => false),
+        setSecret: mock.fn(),
+        setFailed: mock.fn(),
+        info: mock.fn(),
+        warning: warningFn,
+      },
+    });
+    t.mock.module("../install-sonar-scanner.js", {
+      namedExports: { installSonarScanner: mock.fn(async () => "/scanner") },
+    });
+    t.mock.module("../run-sonar-scanner.js", {
+      namedExports: { runSonarScanner: mock.fn(async () => {}) },
+    });
+    t.mock.module("../sanity-checks.js", {
+      namedExports: {
+        validateScannerVersion: mock.fn(),
+        checkSonarToken: mock.fn(),
+        checkMavenProject: mock.fn(),
+        checkGradleProject: mock.fn(),
+      },
+    });
+
+    process.env.SONARCLOUD_URL = "mirror.sonarcloud.io";
+    t.after(() => delete process.env.SONARCLOUD_URL);
+
+    await import("../index.js?test=deprecation-warning");
+
+    assert.equal(warningFn.mock.calls.length, 1);
+    assert.match(
+      warningFn.mock.calls[0].arguments[0],
+      /SONARCLOUD_URL.*deprecated/
+    );
+  });
+
+  it("should not warn when SONARCLOUD_URL is not set", async (t) => {
+    const warningFn = mock.fn();
+    const getInputFn = mock.fn(() => "");
+
+    t.mock.module("@actions/core", {
+      namedExports: {
+        getInput: getInputFn,
+        getBooleanInput: mock.fn(() => false),
+        setSecret: mock.fn(),
+        setFailed: mock.fn(),
+        info: mock.fn(),
+        warning: warningFn,
+      },
+    });
+    t.mock.module("../install-sonar-scanner.js", {
+      namedExports: { installSonarScanner: mock.fn(async () => "/scanner") },
+    });
+    t.mock.module("../run-sonar-scanner.js", {
+      namedExports: { runSonarScanner: mock.fn(async () => {}) },
+    });
+    t.mock.module("../sanity-checks.js", {
+      namedExports: {
+        validateScannerVersion: mock.fn(),
+        checkSonarToken: mock.fn(),
+        checkMavenProject: mock.fn(),
+        checkGradleProject: mock.fn(),
+      },
+    });
+
+    delete process.env.SONARCLOUD_URL;
+
+    await import("../index.js?test=no-deprecation-warning");
+
+    assert.equal(warningFn.mock.calls.length, 0);
+  });
+});
+
 describe("getInputs", () => {
   it("should mask scannerBinariesAuthHeader using setSecret when provided", async (t) => {
     const setSecretFn = mock.fn();

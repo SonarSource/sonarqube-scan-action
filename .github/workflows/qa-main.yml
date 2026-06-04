@@ -451,7 +451,7 @@ jobs:
           ./test/assertFileExists ./test/example-project/.scannerwork/report-task.txt
   overrideSonarcloudUrlTest:
     name: >
-      'SONARCLOUD_URL' is used
+      Deprecated 'SONARCLOUD_URL' still works and emits a deprecation warning
     strategy:
       fail-fast: false
       matrix:
@@ -461,7 +461,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run action with SONARCLOUD_URL
+      - name: Run action with deprecated SONARCLOUD_URL
         uses: ./
         with:
           args: -Dsonar.scanner.apiBaseUrl=api.mirror.sonarcloud.io -Dsonar.scanner.internal.dumpToFile=./output.properties
