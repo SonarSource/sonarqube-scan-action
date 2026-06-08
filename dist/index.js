@@ -10,6 +10,7 @@ import { ok } from 'assert';
 import 'string_decoder';
 import * as events from 'events';
 import { setTimeout as setTimeout$1 } from 'timers';
+import * as fs$2 from 'node:fs/promises';
 import * as os$1 from 'node:os';
 import * as path$1 from 'node:path';
 import { join } from 'node:path';
@@ -4154,6 +4155,15 @@ function cleanupGpgHome(gpgHome) {
 
 const TOOLNAME = "sonar-scanner-cli";
 
+async function ensureZipExtension(filePath) {
+  if (filePath.endsWith(".zip")) {
+    return filePath;
+  }
+  const zipPath = `${filePath}.zip`;
+  await fs$2.rename(filePath, zipPath);
+  return zipPath;
+}
+
 /**
  * Download the Sonar Scanner CLI for the current environment and cache it.
  */
@@ -4202,7 +4212,9 @@ async function installSonarScanner({
       await verifySignature(downloadPath, signaturePath);
     }
 
-    const extractedPath = await extractZip(downloadPath);
+    // PowerShell 5.1 (used on some Windows agents) requires the .zip extension for Expand-Archive
+    const extractInput = await ensureZipExtension(downloadPath);
+    const extractedPath = await extractZip(extractInput);
 
     // Find the actual scanner directory inside the extracted folder
     const scannerPath = path$1.join(
