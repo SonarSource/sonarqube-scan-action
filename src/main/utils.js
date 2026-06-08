@@ -51,3 +51,16 @@ export function getScannerDownloadURL({
 
 export const scannerDirName = (version, flavor) =>
   `sonar-scanner-${version}-${flavor}`;
+
+/**
+ * Converts a 4-part version string (e.g. "8.0.1.6346") to a SemVer 2.0 compatible
+ * string (e.g. "8.0.1-build.6346") for use with GitHub's tool-cache library,
+ * which requires SemVer-compliant version strings.
+ */
+export function toSemVer(version) {
+  const parts = version.split(".");
+  if (parts.length === 4) {
+    return `${parts[0]}.${parts[1]}.${parts[2]}-build.${parts[3]}`;
+  }
+  return version;
+}

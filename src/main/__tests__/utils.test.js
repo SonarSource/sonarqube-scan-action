@@ -22,6 +22,7 @@ import {
   getPlatformFlavor,
   getScannerDownloadURL,
   scannerDirName,
+  toSemVer,
 } from "../utils.js";
 
 describe("getPlatformFlavor", () => {
@@ -95,5 +96,24 @@ describe("scannerDirName", () => {
       scannerDirName("7.2.0-SNAPSHOT", "linux_x64"),
       "sonar-scanner-7.2.0-SNAPSHOT-linux_x64"
     );
+  });
+});
+
+describe("toSemVer", () => {
+  it("converts 4-part version to semver pre-release format", () => {
+    assert.equal(toSemVer("8.0.1.6346"), "8.0.1-build.6346");
+  });
+
+  it("leaves 3-part semver version unchanged", () => {
+    assert.equal(toSemVer("8.0.1"), "8.0.1");
+  });
+
+  it("leaves version with pre-release identifier unchanged", () => {
+    assert.equal(toSemVer("7.2.0-SNAPSHOT"), "7.2.0-SNAPSHOT");
+  });
+
+  it("converts different 4-part versions correctly", () => {
+    assert.equal(toSemVer("6.2.0.4584"), "6.2.0-build.4584");
+    assert.equal(toSemVer("8.1.0.6389"), "8.1.0-build.6389");
   });
 });
