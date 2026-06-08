@@ -149,9 +149,9 @@ In case you need to add additional analysis parameters, and you do not wish to s
 - uses: SonarSource/sonarqube-scan-action@<action version>
   with:
     projectBaseDir: app/src
-    args: >
+    args: |
       -Dsonar.organization=my-organization # For SonarQube Cloud only
-      "-Dsonar.projectName=My Project"
+      -Dsonar.projectName=My Project
       -Dsonar.projectKey=my-projectkey
       -Dsonar.python.coverage.reportPaths=coverage.xml
       -Dsonar.sources=lib/
@@ -164,7 +164,8 @@ In case you need to add additional analysis parameters, and you do not wish to s
 > In version 6, the way the `args` option is handled has been changed to prevent command injection.
 > As a result, we no longer support the full bash syntax.
 > This means there is now a much more restricted use of quoting and escaping compared to older versions of the action.
-> Example:
+> Using the literal block scalar (|) is considered best practice.
+> However, if you prefer to use the folded block scalar (>), you must wrap individual arguments containing spaces or special characters in quotes like so:
 > ```yaml
 > with:
 >   args: >
@@ -357,7 +358,7 @@ jobs:
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
       with:
         # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
-        args: >
+        args: |
           --define "sonar.cfamily.compile-commands=${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
 ```
 
@@ -461,7 +462,7 @@ jobs:
         SONAR_ROOT_CERT: ${{ secrets.SONAR_ROOT_CERT }}
       with:
         # Consult https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/ for more information and options
-        args: >
+        args: |
           --define sonar.cfamily.compile-commands="${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json" 
 ```
 
