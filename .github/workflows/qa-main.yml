@@ -17,7 +17,7 @@ jobs:
         os: [github-ubuntu-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action without args
@@ -37,7 +37,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -66,7 +66,7 @@ jobs:
           ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -93,7 +93,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -121,7 +121,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -148,7 +148,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with args
@@ -178,7 +178,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: mkdir -p ./baseDir
@@ -198,7 +198,7 @@ jobs:
       'scannerVersion' input
     runs-on: github-ubuntu-latest-s # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerVersion
@@ -222,7 +222,7 @@ jobs:
       'scannerBinariesUrl' input with invalid URL
     runs-on: github-ubuntu-latest-s # assumes default RUNNER_ARCH for linux is X64
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -250,7 +250,7 @@ jobs:
       'scannerBinariesUrl' does not allow command injection via semicolons
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -271,7 +271,7 @@ jobs:
       'scannerBinariesUrl' does not allow command injection via spaces and quotes
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with scannerBinariesUrl
@@ -292,7 +292,7 @@ jobs:
       Don't fail on Gradle project
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Gradle project
@@ -313,7 +313,7 @@ jobs:
       Don't fail on Kotlin Gradle project
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Kotlin Gradle project
@@ -334,7 +334,7 @@ jobs:
       Don't fail on Maven project
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on Maven project
@@ -367,7 +367,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action on sample project
@@ -390,7 +390,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with debug mode
@@ -421,7 +421,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: SonarQube Cache
@@ -450,7 +450,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with deprecated SONARCLOUD_URL
@@ -469,7 +469,7 @@ jobs:
       scannerBinariesUrl redirect (3xx) is followed
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate SSL certificates for nginx
@@ -505,7 +505,7 @@ jobs:
         os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with SSL certificate
@@ -556,7 +556,7 @@ jobs:
       Analysis takes into account 'SONAR_ROOT_CERT'
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Generate server certificate
@@ -664,7 +664,7 @@ jobs:
       truststore.p12 is updated when present
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create SONAR_SSL_FOLDER with a file in it (not-truststore.p12)
@@ -793,7 +793,7 @@ jobs:
       'scannerVersion' input validation
     runs-on: github-ubuntu-latest-s
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run action with invalid scannerVersion
