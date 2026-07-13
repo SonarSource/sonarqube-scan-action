@@ -557,7 +557,9 @@ describe("gpg-verification with mocked exec", () => {
 
       assert.throws(
         () => freshSetupGpgHome(),
-        { message: /Cannot create a GPG home directory/ }
+        { message: `Cannot create a GPG home directory with a short enough path for GPG sockets. ` +
+                   `The longest socket path (gpgHome + "/S.gpg-agent.browser") must not exceed 107 characters. ` +
+                   `Consider setting RUNNER_TEMP to a shorter path, was "${longPath}".` }
       );
     });
   });

@@ -124,7 +124,8 @@ export function convertToUnixPath(windowsPath) {
 export function setupGpgHome() {
   const dirName = `gpg-${randomBytes(4).toString("hex")}`;
 
-  for (const base of [process.env.RUNNER_TEMP, os.tmpdir()].filter(Boolean)) {
+  const runnertemp = process.env.RUNNER_TEMP;
+  for (const base of [runnertemp, os.tmpdir()].filter(Boolean)) {
     const gpgHome = path.join(base, dirName);
     if (process.platform === "win32" || (gpgHome + LONGEST_GPG_SOCKET).length <= MAX_GPG_SOCKET_PATH) {
       fs.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
@@ -135,7 +136,7 @@ export function setupGpgHome() {
   throw new Error(
     `Cannot create a GPG home directory with a short enough path for GPG sockets. ` +
     `The longest socket path (gpgHome + "${LONGEST_GPG_SOCKET}") must not exceed ${MAX_GPG_SOCKET_PATH} characters. ` +
-    `Consider setting RUNNER_TEMP to a shorter path.`
+    `Consider setting RUNNER_TEMP to a shorter path, was "${runnertemp || '<empty>'}".`
   );
 }
 
