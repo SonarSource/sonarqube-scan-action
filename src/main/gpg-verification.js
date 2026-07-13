@@ -20,6 +20,7 @@
 
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
+import { randomBytes } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -27,6 +28,10 @@ import * as path from "node:path";
 const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
 const DEFAULT_KEYSERVER = "hkps://keyserver.ubuntu.com";
 const FALLBACK_KEYSERVER = "hkps://keys.openpgp.org";
+// Linux/macOS sockaddr_un.sun_path limit is 108 bytes including the NUL terminator.
+// S.gpg-agent.browser is the longest socket GPG creates directly under the home directory.
+const MAX_GPG_SOCKET_PATH = 107;
+const LONGEST_GPG_SOCKET = "/S.gpg-agent.browser";
 
 /**
  * Verifies the GPG signature of a downloaded file
@@ -117,12 +122,22 @@ export function convertToUnixPath(windowsPath) {
  * @returns {string} Path to the temporary GPG home directory
  */
 export function setupGpgHome() {
-  const tempDir = process.env.RUNNER_TEMP || os.tmpdir();
-  const gpgHome = path.join(tempDir, `gpg-home-${Date.now()}-${process.pid}`);
+  const dirName = `gpg-${randomBytes(4).toString("hex")}`;
 
-  fs.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
+  const runnertemp = process.env.RUNNER_TEMP;
+  for (const base of [runnertemp, os.tmpdir()].filter(Boolean)) {
+    const gpgHome = path.join(base, dirName);
+    if (process.platform === "win32" || (gpgHome + LONGEST_GPG_SOCKET).length <= MAX_GPG_SOCKET_PATH) {
+      fs.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
+      return gpgHome;
+    }
+  }
 
-  return gpgHome;
+  throw new Error(
+    `Cannot create a GPG home directory with a short enough path for GPG sockets. ` +
+    `The longest socket path (gpgHome + "${LONGEST_GPG_SOCKET}") must not exceed ${MAX_GPG_SOCKET_PATH} characters. ` +
+    `Consider setting RUNNER_TEMP to a shorter path, was "${runnertemp || '<empty>'}".`
+  );
 }
 
 /**

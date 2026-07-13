@@ -20,7 +20,9 @@
 
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
-import { afterEach, describe, it, mock } from "node:test";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import { getProxyFromEnv, setupGpgHome, } from "../gpg-verification.js";
 
 /**
@@ -488,6 +490,76 @@ describe("gpg-verification with mocked exec", () => {
         {
           message: /Failed to import SonarSource public key from all keyservers/
         }
+      );
+    });
+  });
+
+  describe("setupGpgHome", () => {
+    let originalRunnerTemp;
+
+    beforeEach(() => {
+      originalRunnerTemp = process.env.RUNNER_TEMP;
+    });
+
+    afterEach(() => {
+      if (originalRunnerTemp === undefined) {
+        delete process.env.RUNNER_TEMP;
+      } else {
+        process.env.RUNNER_TEMP = originalRunnerTemp;
+      }
+    });
+
+    it("should create directory under RUNNER_TEMP when path is short enough", () => {
+      const runnerTemp = fs.mkdtempSync(path.join(os.tmpdir(), "runner-temp-"));
+      tempDirs.push(runnerTemp);
+      process.env.RUNNER_TEMP = runnerTemp;
+
+      const gpgHome = setupGpgHome();
+      tempDirs.push(gpgHome);
+
+      assert.equal(path.dirname(gpgHome), runnerTemp);
+      assert.ok(fs.existsSync(gpgHome));
+    });
+
+    it("should fall back to os.tmpdir() when RUNNER_TEMP is not set", () => {
+      delete process.env.RUNNER_TEMP;
+
+      const gpgHome = setupGpgHome();
+      tempDirs.push(gpgHome);
+
+      assert.equal(path.dirname(gpgHome), os.tmpdir());
+      assert.ok(fs.existsSync(gpgHome));
+    });
+
+    it("should fall back to os.tmpdir() when RUNNER_TEMP path is too long for GPG sockets", () => {
+      // Customer's actual RUNNER_TEMP (93 chars) — pushes the dirmngr socket path over the 107-char Linux limit
+      process.env.RUNNER_TEMP = "/codebuild/output/src2280/src/2bc4e189_61b5_4b91_abc6_9c5c06637b96/actions-runner/_work/_temp";
+
+      const gpgHome = setupGpgHome();
+      tempDirs.push(gpgHome);
+
+      assert.equal(path.dirname(gpgHome), os.tmpdir());
+      assert.ok(fs.existsSync(gpgHome));
+    });
+
+    it("should throw a clear error when all candidate paths are too long", async (t) => {
+      const longPath = "/codebuild/output/src2280/src/2bc4e189_61b5_4b91_abc6_9c5c06637b96/actions-runner/_work/_temp";
+
+      t.mock.module("node:os", {
+        namedExports: {
+          tmpdir: () => longPath,
+        },
+      });
+
+      process.env.RUNNER_TEMP = longPath;
+
+      const { setupGpgHome: freshSetupGpgHome } = await import("../gpg-verification.js?test=both-paths-too-long");
+
+      assert.throws(
+        () => freshSetupGpgHome(),
+        { message: `Cannot create a GPG home directory with a short enough path for GPG sockets. ` +
+                   `The longest socket path (gpgHome + "/S.gpg-agent.browser") must not exceed 107 characters. ` +
+                   `Consider setting RUNNER_TEMP to a shorter path, was "${longPath}".` }
       );
     });
   });

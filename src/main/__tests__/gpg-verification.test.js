@@ -101,9 +101,8 @@ async function withMockedEnv(envVars, testFn) {
  * @returns {string} The path to the created temporary directory
  */
 function createTempDir() {
-  const tempDir = path.join(os.tmpdir(), `test-runner-temp-${Date.now()}`);
-  fs.mkdirSync(tempDir, { recursive: true });
-  return tempDir;
+  // Use a short prefix so the gpg socket path stays within the 107-char Linux limit
+  return fs.mkdtempSync(path.join(os.tmpdir(), "r"));
 }
 
 describe("gpg-verification", () => {
@@ -177,10 +176,8 @@ describe("gpg-verification", () => {
       }
     });
 
-    it("should create unique directories on multiple calls", async () => {
+    it("should create unique directories on multiple calls", () => {
       const gpgHome1 = createTrackedGpgHome(tempDirs);
-      // Small delay to ensure different timestamps
-      await new Promise((resolve) => setTimeout(resolve, 10));
       const gpgHome2 = createTrackedGpgHome(tempDirs);
 
       assert.notEqual(gpgHome1, gpgHome2);
