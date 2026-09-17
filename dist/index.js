@@ -4026,6 +4026,87 @@ function getProxyFromEnv() {
 }
 
 /**
+ * Downloads a key, reads it into memory, and removes the temporary file.
+ * @param {string} keyUrl - URL of the key to download
+ * @returns {Promise<Buffer>} The downloaded key data
+ * @throws {Error} If the key cannot be downloaded or read
+ */
+async function downloadKey(keyUrl) {
+  const keyPath = await downloadTool(keyUrl);
+  try {
+    return fs$1.readFileSync(keyPath);
+  } finally {
+    fs$1.rmSync(keyPath, { force: true });
+  }
+}
+
+/**
+ * Validates a downloaded key's primary key fingerprint.
+ * @param {string} gpgCommand - GPG command name
+ * @param {string} gpgHomePath - Path to the GPG home directory
+ * @param {Buffer} keyData - Downloaded key data
+ * @param {string} keyFingerprint - Expected primary key fingerprint
+ * @returns {Promise<void>} Resolves if the key is valid, otherwise throws an error
+ * @throws {Error} If the key fingerprint does not match
+ */
+async function validateKeyFingerprint(gpgCommand, gpgHomePath, keyData, keyFingerprint) {
+  // Inspect the in-memory key without adding it to the temporary keyring.
+  let keyDetails = "";
+  await execExports.exec(
+    gpgCommand,
+    [
+      "--homedir",
+      gpgHomePath,
+      "--batch",
+      "--with-colons",
+      "--import-options",
+      "show-only",
+      "--import",
+      "-",
+    ],
+    {
+      silent: true,
+      input: keyData,
+      listeners: {
+        stdout: (data) => {
+          keyDetails += data.toString();
+        },
+      },
+    }
+  );
+
+  // A primary key's fingerprint follows its "pub" record; ignore fingerprints belonging to subkeys.
+  const primaryFingerprints = [];
+  let readingPrimaryKey = false;
+  const fingerprintFieldIndex = 9;
+  for (const line of keyDetails.split(/\r?\n/)) {
+    const fields = line.split(":");
+    const recordType = fields[0];
+
+    switch (recordType) {
+      case "pub":
+        primaryFingerprints.push(undefined);
+        readingPrimaryKey = true;
+        break;
+      case "fpr":
+        if (readingPrimaryKey) {
+          primaryFingerprints[primaryFingerprints.length - 1] = fields[fingerprintFieldIndex];
+          readingPrimaryKey = false;
+        }
+        break;
+      case "sub":
+        readingPrimaryKey = false;
+        break;
+    }
+  }
+
+  // Accept exactly one primary key, and only when it matches the requested fingerprint.
+  if (primaryFingerprints.length !== 1 || primaryFingerprints[0]?.toUpperCase() !== keyFingerprint.toUpperCase()) {
+    throw new Error(`Downloaded key does not match requested fingerprint ${keyFingerprint}`);
+  }
+}
+
+/**
  * Attempts to import a public key from a specific keyserver
  * @param {string} gpgHome - Path to GPG home directory
  * @param {string} keyFingerprint - Public key fingerprint
@@ -4044,6 +4125,27 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
     // automatically redacted
     setSecret(proxyUrl);
     info("Using HTTPS_PROXY for keyserver access");
+
+    // Work around a GPG bug that can prevent connecting to keyservers through a proxy in some scenarios.
+    // See https://lists.gnupg.org/pipermail/gnupg-devel/2026-September/036393.html
+    const keyUrl = `${keyserver.replace(/^hkps:/, "https:").replace(/\/$/, "")}/pks/lookup?op=get&search=0x${keyFingerprint}`;
+    const keyData = await downloadKey(keyUrl);
+    await validateKeyFingerprint(gpgCommand, gpgHomePath, keyData, keyFingerprint);
+    await execExports.exec(
+      gpgCommand,
+      [
+        "--homedir",
+        gpgHomePath,
+        "--batch",
+        "--import",
+        "-"
+      ],
+      {
+        silent: false,
+        input: keyData
+      }
+    );
+    return;
   }
 
   await execExports.exec(
@@ -4054,7 +4156,6 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
       "--batch",
       "--keyserver",
       keyserver,
-      ...(proxyUrl ? ["--keyserver-options", `http-proxy=${proxyUrl}`] : []),
       "--recv-keys",
       keyFingerprint,
     ],
