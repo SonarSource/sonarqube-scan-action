@@ -612,15 +612,21 @@ describe("gpg-verification with mocked exec", () => {
       clearProxyEnv();
     });
 
-    it("should not pass --keyserver-options when no proxy env is set", async (t) => {
+    it("should use GPG key retrieval when no proxy env is set", async (t) => {
       clearProxyEnv();
 
       const execCalls = [];
+      const downloadToolFn = mock.fn();
       const execFn = mock.fn(async (command, args) => {
         execCalls.push({ command, args });
         return 0;
       });
 
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
+      });
       t.mock.module("@actions/exec", {
         namedExports: {
           exec: execFn,
@@ -637,7 +643,8 @@ describe("gpg-verification with mocked exec", () => {
 
       assert.equal(execCalls.length, 1);
       const args = execCalls[0].args;
-      assert.ok(!args.includes("--keyserver-options"), "Should NOT include --keyserver-options");
+      assert.ok(args.includes("--recv-keys"));
+      assert.equal(downloadToolFn.mock.calls.length, 0);
     });
 
     it("should use HTTPS_PROXY when set", async (t) => {
@@ -645,9 +652,24 @@ describe("gpg-verification with mocked exec", () => {
       process.env.HTTPS_PROXY = "http://corporate-proxy:8080";
 
       const execCalls = [];
-      const execFn = mock.fn(async (command, args) => {
-        execCalls.push({ command, args });
+      const keyData = Buffer.from("downloaded public key");
+      const downloadToolFn = mock.fn(async (url) => {
+        const keyPath = path.join(gpgHome, "downloaded-key.asc");
+        fs.writeFileSync(keyPath, keyData);
+        return keyPath;
+      });
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args, options });
+        if (args.includes("show-only")) {
+          options.listeners.stdout(Buffer.from("pub:-:4096:1:ABCD1234::::::\nfpr:::::::::ABCD1234:\n"));
+        }
         return 0;
+      });
+
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
       });
 
       t.mock.module("@actions/exec", {
@@ -661,10 +683,21 @@ describe("gpg-verification with mocked exec", () => {
       const gpgHome = createTrackedGpgHome(tempDirs);
       await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
 
-      const args = execCalls[0].args;
-      const optIdx = args.indexOf("--keyserver-options");
-      assert.ok(optIdx !== -1, "Should include --keyserver-options");
-      assert.equal(args[optIdx + 1], "http-proxy=http://corporate-proxy:8080");
+      assert.equal(downloadToolFn.mock.calls.length, 1);
+      assert.equal(
+        downloadToolFn.mock.calls[0].arguments[0],
+        "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xABCD1234"
+      );
+      assert.equal(downloadToolFn.mock.calls[0].arguments.length, 1);
+      assert.ok(!fs.existsSync(path.join(gpgHome, "downloaded-key.asc")));
+      assert.equal(execCalls.length, 2);
+      assert.ok(execCalls[0].args.includes("show-only"));
+      assert.equal(execCalls[0].args.at(-1), "-");
+      assert.deepEqual(execCalls[0].options.input, keyData);
+      assert.ok(execCalls[1].args.includes("--import"));
+      assert.ok(!execCalls[1].args.includes("--recv-keys"));
+      assert.equal(execCalls[1].args.at(-1), "-");
+      assert.equal(execCalls[1].options.input, execCalls[0].options.input);
     });
 
     it("should use https_proxy (lowercase) when set", async (t) => {
@@ -672,9 +705,23 @@ describe("gpg-verification with mocked exec", () => {
       process.env.https_proxy = "http://lowercase-proxy:3128";
 
       const execCalls = [];
-      const execFn = mock.fn(async (command, args) => {
-        execCalls.push({ command, args });
+      const downloadToolFn = mock.fn(async () => {
+        const keyPath = path.join(gpgHome, "downloaded-key.asc");
+        fs.writeFileSync(keyPath, "downloaded public key");
+        return keyPath;
+      });
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args, options });
+        if (args.includes("show-only")) {
+          options.listeners.stdout(Buffer.from("pub:-:4096:1:ABCD1234::::::\nfpr:::::::::ABCD1234:\n"));
+        }
         return 0;
+      });
+
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
       });
 
       t.mock.module("@actions/exec", {
@@ -688,10 +735,58 @@ describe("gpg-verification with mocked exec", () => {
       const gpgHome = createTrackedGpgHome(tempDirs);
       await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
 
-      const args = execCalls[0].args;
-      const optIdx = args.indexOf("--keyserver-options");
-      assert.ok(optIdx !== -1);
-      assert.equal(args[optIdx + 1], "http-proxy=http://lowercase-proxy:3128");
+      assert.equal(
+        downloadToolFn.mock.calls[0].arguments[0],
+        "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xABCD1234"
+      );
+      assert.ok(execCalls[0].args.includes("show-only"));
+      assert.ok(execCalls[1].args.includes("--import"));
+      assert.ok(!execCalls[1].args.includes("--recv-keys"));
+    });
+
+    it("should fetch the fallback key after the primary download fails", async (t) => {
+      clearProxyEnv();
+      process.env.HTTPS_PROXY = "http://corporate-proxy:8080";
+
+      const keyData = Buffer.from("fallback public key");
+      const downloadToolFn = mock.fn(async (url) => {
+        if (url.includes("keyserver.ubuntu.com")) {
+          throw new Error("HTTP 503");
+        }
+        const keyPath = path.join(gpgHome, "fallback-key.asc");
+        fs.writeFileSync(keyPath, keyData);
+        return keyPath;
+      });
+      const execFn = mock.fn(async (command, args, options) => {
+        if (args.includes("show-only")) {
+          options.listeners.stdout(Buffer.from("pub:-:4096:1:ABCD1234::::::\nfpr:::::::::ABCD1234:\n"));
+        }
+        return 0;
+      });
+
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
+      });
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-fallback-memory");
+      const gpgHome = createTrackedGpgHome(tempDirs);
+
+      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
+
+      assert.equal(downloadToolFn.mock.calls.length, 2);
+      assert.equal(
+        downloadToolFn.mock.calls[1].arguments[0],
+        "https://keys.openpgp.org/pks/lookup?op=get&search=0xABCD1234"
+      );
+      assert.equal(downloadToolFn.mock.calls[0].arguments.length, 1);
+      assert.equal(downloadToolFn.mock.calls[1].arguments.length, 1);
+      assert.deepEqual(execFn.mock.calls[0].arguments[2].input, keyData);
+      assert.equal(execFn.mock.calls[1].arguments[2].input, execFn.mock.calls[0].arguments[2].input);
     });
 
     it("should not use proxy when only HTTP_PROXY is set", async (t) => {
@@ -699,11 +794,17 @@ describe("gpg-verification with mocked exec", () => {
       process.env.HTTP_PROXY = "http://http-only-proxy:9090";
 
       const execCalls = [];
+      const downloadToolFn = mock.fn();
       const execFn = mock.fn(async (command, args) => {
         execCalls.push({ command, args });
         return 0;
       });
 
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
+      });
       t.mock.module("@actions/exec", {
         namedExports: {
           exec: execFn,
@@ -716,7 +817,8 @@ describe("gpg-verification with mocked exec", () => {
       await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
 
       const args = execCalls[0].args;
-      assert.ok(!args.includes("--keyserver-options"), "Should NOT include --keyserver-options when only HTTP_PROXY is set");
+      assert.ok(args.includes("--recv-keys"));
+      assert.equal(downloadToolFn.mock.calls.length, 0);
     });
 
     it("should not use proxy when only http_proxy (lowercase) is set", async (t) => {
@@ -724,11 +826,17 @@ describe("gpg-verification with mocked exec", () => {
       process.env.http_proxy = "http://last-resort-proxy:1080";
 
       const execCalls = [];
+      const downloadToolFn = mock.fn();
       const execFn = mock.fn(async (command, args) => {
         execCalls.push({ command, args });
         return 0;
       });
 
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
+      });
       t.mock.module("@actions/exec", {
         namedExports: {
           exec: execFn,
@@ -741,37 +849,125 @@ describe("gpg-verification with mocked exec", () => {
       await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
 
       const args = execCalls[0].args;
-      assert.ok(!args.includes("--keyserver-options"), "Should NOT include --keyserver-options when only http_proxy is set");
+      assert.ok(args.includes("--recv-keys"));
+      assert.equal(downloadToolFn.mock.calls.length, 0);
     });
 
-    it("should prefer HTTPS_PROXY over https_proxy and ignore HTTP variants", async (t) => {
+    it("should reject a downloaded key with a different fingerprint", async (t) => {
       clearProxyEnv();
-      process.env.HTTPS_PROXY = "http://preferred:8080";
-      process.env.https_proxy = "http://not-this-one:8080";
-      process.env.HTTP_PROXY = "http://also-not:3128";
-      process.env.http_proxy = "http://nope:1080";
+      process.env.HTTPS_PROXY = "http://corporate-proxy:8080";
 
       const execCalls = [];
-      const execFn = mock.fn(async (command, args) => {
+      const downloadToolFn = mock.fn(async () => {
+        const keyPath = path.join(gpgHome, "untrusted-key.asc");
+        fs.writeFileSync(keyPath, "untrusted public key");
+        return keyPath;
+      });
+      const execFn = mock.fn(async (command, args, options) => {
         execCalls.push({ command, args });
+        options.listeners.stdout(Buffer.from("pub:-:4096:1:DEADBEEF::::::\nfpr:::::::::DEADBEEF:\n"));
         return 0;
       });
 
-      t.mock.module("@actions/exec", {
+      t.mock.module("@actions/tool-cache", {
         namedExports: {
-          exec: execFn,
+          downloadTool: downloadToolFn,
         },
       });
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
 
-      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-precedence");
-
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-wrong-fingerprint");
       const gpgHome = createTrackedGpgHome(tempDirs);
-      await importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com");
 
-      const args = execCalls[0].args;
-      const optIdx = args.indexOf("--keyserver-options");
-      assert.ok(optIdx !== -1);
-      assert.equal(args[optIdx + 1], "http-proxy=http://preferred:8080");
+      await assert.rejects(
+        () => importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com"),
+        { message: /Downloaded key does not match requested fingerprint ABCD1234/ }
+      );
+      assert.equal(execCalls.length, 2, "Should inspect primary and fallback responses");
+      assert.ok(execCalls.every(call => call.args.includes("show-only")));
+    });
+
+    it("should reject a key when only its subkey fingerprint matches", async (t) => {
+      clearProxyEnv();
+      process.env.HTTPS_PROXY = "http://corporate-proxy:8080";
+
+      const execCalls = [];
+      const downloadToolFn = mock.fn(async () => {
+        const keyPath = path.join(gpgHome, "subkey-match.asc");
+        fs.writeFileSync(keyPath, "untrusted public key");
+        return keyPath;
+      });
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args });
+        options.listeners.stdout(Buffer.from([
+          "pub:-:4096:1:DEADBEEF::::::",
+          "fpr:::::::::DEADBEEF:",
+          "uid:-:::::::Untrusted signer:",
+          "sub:-:4096:1:ABCD1234::::::",
+          "fpr:::::::::ABCD1234:",
+        ].join("\n")));
+        return 0;
+      });
+
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
+      });
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-subkey-match");
+      const gpgHome = createTrackedGpgHome(tempDirs);
+
+      await assert.rejects(
+        () => importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com"),
+        { message: /Downloaded key does not match requested fingerprint ABCD1234/ }
+      );
+      assert.equal(execCalls.length, 2, "Should inspect primary and fallback responses");
+      assert.ok(execCalls.every(call => call.args.includes("show-only")));
+    });
+
+    it("should reject a download containing multiple primary keys", async (t) => {
+      clearProxyEnv();
+      process.env.HTTPS_PROXY = "http://corporate-proxy:8080";
+
+      const execCalls = [];
+      const downloadToolFn = mock.fn(async () => {
+        const keyPath = path.join(gpgHome, "multiple-keys.asc");
+        fs.writeFileSync(keyPath, "multiple public keys");
+        return keyPath;
+      });
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args });
+        options.listeners.stdout(Buffer.from(
+          "pub:-:4096:1:ABCD1234::::::\nfpr:::::::::ABCD1234:\n" +
+          "pub:-:4096:1:DEADBEEF::::::\nfpr:::::::::DEADBEEF:\n"
+        ));
+        return 0;
+      });
+
+      t.mock.module("@actions/tool-cache", {
+        namedExports: {
+          downloadTool: downloadToolFn,
+        },
+      });
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { importSonarSourceKey } = await import("../gpg-verification.js?test=proxy-multiple-keys");
+      const gpgHome = createTrackedGpgHome(tempDirs);
+
+      await assert.rejects(
+        () => importSonarSourceKey(gpgHome, "ABCD1234", "hkps://keyserver.ubuntu.com"),
+        { message: /Downloaded key does not match requested fingerprint ABCD1234/ }
+      );
+      assert.equal(execCalls.length, 2, "Should inspect primary and fallback responses");
+      assert.ok(execCalls.every(call => call.args.includes("show-only")));
     });
   });
 });
