@@ -7,7 +7,7 @@
     {
       "matchManagers": ["npm"],
       "postUpgradeTasks": {
-        "commands": ["npm run build"],
+        "commands": ["npm ci --ignore-scripts", "npm run build"],
         "fileFilters": ["dist/**"],
         "executionMode": "branch"
       }
