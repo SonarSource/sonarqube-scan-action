@@ -10,7 +10,7 @@ jobs:
     runs-on: github-ubuntu-latest-s
     permissions:
       id-token: write
-      contents: read
+      contents: write
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -22,7 +22,7 @@ jobs:
           cache: "npm"
 
       - name: Configure NPM with Repox
-        uses: SonarSource/ci-github-actions/config-npm@v1
+        uses: SonarSource/ci-github-actions/config-npm@v2
 
       - name: Install dependencies
         run: npm ci
