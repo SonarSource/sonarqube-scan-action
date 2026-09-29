@@ -1,4 +1,4 @@
-import { e as execExports, a as addPath, i as info, s as setOutput, b as setFailed, c as startGroup, d as endGroup } from './exec-DDbuhlVo.js';
+import { g as getExecOutput, a as addPath, i as info, s as setOutput, b as setFailed, e as exec, c as startGroup, d as endGroup } from './core-u865svwK.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import 'os';
@@ -124,7 +124,7 @@ function getSuffixAndName(runnerOS, runnerArch) {
 async function getRealPath(filePath, runnerOS) {
   switch (runnerOS) {
     case "Windows": {
-      const windowsResult = await execExports.getExecOutput("cygpath", [
+      const windowsResult = await getExecOutput("cygpath", [
         "--absolute",
         "--windows",
         filePath,
@@ -132,14 +132,14 @@ async function getRealPath(filePath, runnerOS) {
       return windowsResult.stdout.trim();
     }
     case "Linux": {
-      const linuxResult = await execExports.getExecOutput("readlink", [
+      const linuxResult = await getExecOutput("readlink", [
         "-f",
         filePath,
       ]);
       return linuxResult.stdout.trim();
     }
     case "macOS": {
-      const macResult = await execExports.getExecOutput("greadlink", ["-f", filePath]);
+      const macResult = await getExecOutput("greadlink", ["-f", filePath]);
       return macResult.stdout.trim();
     }
     default:
@@ -169,7 +169,7 @@ async function getRealPath(filePath, runnerOS) {
 async function installMacOSPackages() {
   if (process.platform === "darwin") {
     info("Installing required packages for macOS");
-    await execExports.exec("brew", ["install", "coreutils"]);
+    await exec("brew", ["install", "coreutils"]);
   }
 }
 
@@ -207,10 +207,10 @@ async function downloadAndInstallBuildWrapper(downloadUrl, runnerEnv) {
     fs.mkdirSync(runnerTemp, { recursive: true });
   }
 
-  await execExports.exec("curl", ["-sSLo", tmpZipPath, downloadUrl]);
+  await exec("curl", ["-sSLo", tmpZipPath, downloadUrl]);
 
   info("Decompressing");
-  await execExports.exec("unzip", ["-o", "-d", runnerTemp, tmpZipPath]);
+  await exec("unzip", ["-o", "-d", runnerTemp, tmpZipPath]);
 
   endGroup();
 }
