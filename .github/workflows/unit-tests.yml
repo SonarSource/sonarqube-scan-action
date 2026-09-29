@@ -22,7 +22,7 @@ jobs:
           cache: "npm"
 
       - name: Configure NPM with Repox
-        uses: SonarSource/ci-github-actions/config-npm@v1
+        uses: SonarSource/ci-github-actions/config-npm@v2
 
       - name: Install dependencies
         run: npm ci
