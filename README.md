@@ -18,7 +18,7 @@
 
 # Scan your code with SonarQube
 
-This GitHub Action runs SonarQube analysis in a GitHub Actions workflow and sends the results to SonarQube Server or SonarQube Cloud. It is the official GitHub Action for scanning C, C++, Objective-C, and Dart projects.
+This GitHub Action runs SonarQube analysis in a GitHub Actions workflow and sends the results to SonarQube Server or SonarQube Cloud. It is the official GitHub Action for scanning projects in most languages supported by SonarQube. For projects built with Maven or Gradle, use the corresponding SonarScanner for Maven or SonarScanner for Gradle instead.
 
 Continue to the [quick start](#quick-start), or learn more about [SonarQube Server](https://www.sonarsource.com/products/sonarqube/server/) and [SonarQube Cloud](https://www.sonarsource.com/products/sonarqube/cloud/).
 
