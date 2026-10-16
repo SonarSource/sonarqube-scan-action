@@ -2,5 +2,14 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "local>SonarSource/renovate-config"
+  ],
+  "packageRules": [
+    {
+      "description": "Preserve documented args quoting until a breaking parser change can be evaluated.",
+      "matchPackageNames": [
+        "string-argv"
+      ],
+      "allowedVersions": "<0.4.0"
+    }
   ]
 }
