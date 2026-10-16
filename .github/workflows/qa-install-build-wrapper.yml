@@ -42,7 +42,7 @@ jobs:
         id: run-action
         uses: ./install-build-wrapper
         env:
-          SONAR_HOST_URL: 'https://next.sonarqube.com/sonarqube/'
+          SONAR_HOST_URL: 'https://sonarcloud.io/'
 
       # build-wrapper does not have --help or equivalent option.
       # Pass to few arguments and ignore error code

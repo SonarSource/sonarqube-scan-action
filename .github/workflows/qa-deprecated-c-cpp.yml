@@ -42,14 +42,14 @@ jobs:
         id: run-action
         uses: ./deprecated-c-cpp
         env:
-          SONAR_HOST_URL: 'https://next.sonarqube.com/sonarqube/'
+          SONAR_HOST_URL: 'https://sonarcloud.io/'
         with:
           cache-binaries: ${{ matrix.cache }}
 
       - name: SONAR_HOST_URL is set
         shell: bash
         run: |
-          [[ $SONAR_HOST_URL == "https://next.sonarqube.com/sonarqube/" ]]
+          [[ $SONAR_HOST_URL == "https://sonarcloud.io/" ]]
 
       - name: sonar-scanner is installed and in PATH
         run: |
