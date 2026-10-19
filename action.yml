@@ -19,7 +19,7 @@ inputs:
     description: Version of the Sonar Scanner CLI to use
     required: false
     # to be kept in sync with sonar-scanner-version
-    default: 8.1.0.6389
+    default: 8.2.0.6438
   scannerBinariesUrl:
     description: URL to download the Sonar Scanner CLI binaries from
     required: false
@@ -30,9 +30,8 @@ inputs:
     default: "false"
   scannerBinariesAuthHeader:
     description: >
-      Authorization header value to use when downloading the SonarScanner CLI binaries
-      (e.g. 'Bearer mytoken' or 'Basic base64creds'). Use this when scannerBinariesUrl
-      points to a private server that requires authentication.
+      Authorization header value to use when downloading the SonarScanner CLI binaries (e.g. 'Bearer mytoken' or 'Basic base64creds'). Use this when scannerBinariesUrl points to a private server that requires authentication.
+
     required: false
     default: ""
 runs:
