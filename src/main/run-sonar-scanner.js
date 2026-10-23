@@ -26,6 +26,23 @@ import { parseArgsStringToArgv } from "string-argv";
 const KEYTOOL_MAIN_CLASS = "sun.security.tools.keytool.Main";
 const TRUSTSTORE_PASSWORD = "changeit"; // default password of the Java truststore!
 
+// Allowlist for user-supplied scanner args: either a recognized flag, a
+// `-Dkey=value` property, or a bare `key=value` property (used after `--define`).
+const ALLOWED_FLAG_PATTERN =
+  /^(--define|--debug|--no-web|-X|-h|--help|-v|--version|-N)$/;
+const ALLOWED_PROPERTY_PATTERN = /^(-D)?[A-Za-z][\w.]*=.*$/;
+
+function assertValidScannerArgs(args) {
+  for (const arg of args) {
+    if (
+      !ALLOWED_FLAG_PATTERN.test(arg) &&
+      !ALLOWED_PROPERTY_PATTERN.test(arg)
+    ) {
+      throw new Error(`Unsupported scanner argument: ${arg}`);
+    }
+  }
+}
+
 export async function runSonarScanner(
   inputArgs,
   projectBaseDir,
@@ -108,10 +125,13 @@ export async function runSonarScanner(
 
   if (inputArgs) {
     /**
-     * No sanitization, but it is parsing a string into an array of arguments in a safe way (= no command execution),
+     * Parsing a string into an array of arguments in a safe way (= no command execution),
      * and with good enough support of quotes to support arguments containing spaces.
+     * The parsed arguments are then validated against an allowlist to prevent
+     * injection of unexpected scanner arguments.
      */
     const args = parseArgsStringToArgv(inputArgs);
+    assertValidScannerArgs(args);
     scannerArgs.push(...args);
   }
 
