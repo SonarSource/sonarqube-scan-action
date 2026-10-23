@@ -18,7 +18,7 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getBuildWrapperInfo } from "../utils.js";
+import { getBuildWrapperInfo, getSonarHostUrl } from "../utils.js";
 
 describe("getBuildWrapperInfo", () => {
   const supportedPlatforms = [
@@ -94,5 +94,27 @@ describe("getBuildWrapperInfo", () => {
         `should have thrown for ${platform} ${arch}`
       );
     });
+  });
+});
+
+describe("getSonarHostUrl", () => {
+  it("defaults to SonarQube Cloud EU", () => {
+    assert.equal(getSonarHostUrl({}), "https://sonarcloud.io");
+  });
+
+  it("uses SonarQube Cloud US when SONAR_REGION is us", () => {
+    assert.equal(getSonarHostUrl({ SONAR_REGION: "us" }), "https://sonarqube.us");
+    assert.equal(getSonarHostUrl({ SONAR_REGION: " US " }), "https://sonarqube.us");
+  });
+
+  it("ignores empty SONAR_REGION", () => {
+    assert.equal(getSonarHostUrl({ SONAR_REGION: "" }), "https://sonarcloud.io");
+  });
+
+  it("prefers SONAR_HOST_URL over SONAR_REGION", () => {
+    assert.equal(
+      getSonarHostUrl({ SONAR_HOST_URL: "https://my.sonarqube.com/", SONAR_REGION: "us" }),
+      "https://my.sonarqube.com"
+    );
   });
 });
