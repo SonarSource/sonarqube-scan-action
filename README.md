@@ -498,6 +498,16 @@ When running the action in a self-hosted runner or container, please ensure that
 
 Note: `gpg` and `dirmngr` are only required for GPG signature verification (enabled by default). They can be omitted when setting `skipSignatureVerification: true`.
 
+### Certificate trust and runtime updates
+
+This action uses two separate runtimes for HTTPS: the runner-managed Node.js runtime that executes the action and the Java runtime used by SonarScanner CLI. Update both runtimes and any custom trust stores when applying certificate-trust security updates.
+
+For the October 2026 eMudhra incident, use Node.js **24.22.1 or later in the Node 24 release line**, or an equivalent verified vendor backport. The [Node.js security release](https://nodejs.org/en/blog/release/v24.22.1) updates root certificates and rejects certificate chains containing compromised public keys. Keep your GitHub Actions runner updated and verify its JavaScript-action runtime using the `Action runtime: Node.js ...` line in this action's logs. On self-hosted runners, check the runner installation's `externals/node24/bin/node` (`node.exe` on Windows). Installing Node.js with `actions/setup-node` changes the job's shell environment; it does not replace the runner-managed runtime selected by this action's `using: node24` declaration.
+
+The current default, SonarScanner CLI **8.2.0.6438**, still bundles the affected Temurin **21.0.12.1+1** JRE. A CLI release with validated replacement JREs is required before this action's default can be considered remediated. Once that release is published, update both `action.yml` and `sonar-scanner-version` together. If you explicitly set `scannerVersion`, update that input as well. Do not assume a newer action version or a refreshed operating-system CA package fixes an older bundled JVM.
+
+Scanner installations are cached by version and platform. Selecting a fixed CLI version uses a different cache entry; existing installations and running processes need their own updates. Separately verify any `SONAR_ROOT_CERT` certificates, custom truststores, and JREs auto-provisioned by SonarQube Server or Cloud. Those provisioned JREs can differ from the CLI's bundled JVM.
+
 ### Additional information
 
 The `sonarqube-scan-action/install-build-wrapper` action installs `coreutils` if run on macOS.
