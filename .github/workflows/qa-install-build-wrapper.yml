@@ -71,10 +71,29 @@ jobs:
         run: |
           ("$BINARY" || true) | grep "build-wrapper, version "
 
+  region-test:
+    name: SONAR_REGION is honored
+    runs-on: github-ubuntu-latest-s
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Run SonarQube C/C++ action with US region
+        id: run-action
+        uses: ./install-build-wrapper
+        env:
+          SONAR_REGION: us
+
+      - name: build-wrapper-binary output is correct
+        shell: bash
+        env:
+          BINARY: ${{ steps.run-action.outputs.build-wrapper-binary }}
+        run: |
+          ("$BINARY" || true) | grep "build-wrapper, version "
+
   qa-gate:
     name: QA Install Build Wrapper - gate
     runs-on: ubuntu-latest
-    needs: [output-test]
+    needs: [output-test, region-test]
     if: always()
     steps:
       - name: Check all jobs passed

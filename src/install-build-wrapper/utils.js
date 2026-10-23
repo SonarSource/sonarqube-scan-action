@@ -20,6 +20,20 @@ import * as exec from "@actions/exec";
 import * as path from "path";
 
 /**
+ * Resolve the server to download the build wrapper from.
+ * SONAR_HOST_URL takes precedence, otherwise SonarQube Cloud is assumed,
+ * using SONAR_REGION to select the region (same as the scanner).
+ */
+export function getSonarHostUrl({ SONAR_HOST_URL, SONAR_REGION }) {
+  if (SONAR_HOST_URL) {
+    return SONAR_HOST_URL.replace(/\/$/, "");
+  }
+  return SONAR_REGION?.trim().toLowerCase() === "us"
+    ? "https://sonarqube.us"
+    : "https://sonarcloud.io";
+}
+
+/**
  * Compute all names and paths related to the build wrapper
  * based on the runner environment
  */

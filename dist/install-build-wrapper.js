@@ -52,6 +52,20 @@ import 'timers';
 
 
 /**
+ * Resolve the server to download the build wrapper from.
+ * SONAR_HOST_URL takes precedence, otherwise SonarQube Cloud is assumed,
+ * using SONAR_REGION to select the region (same as the scanner).
+ */
+function getSonarHostUrl({ SONAR_HOST_URL, SONAR_REGION }) {
+  if (SONAR_HOST_URL) {
+    return SONAR_HOST_URL.replace(/\/$/, "");
+  }
+  return SONAR_REGION?.trim().toLowerCase() === "us"
+    ? "https://sonarqube.us"
+    : "https://sonarcloud.io";
+}
+
+/**
  * Compute all names and paths related to the build wrapper
  * based on the runner environment
  */
@@ -177,18 +191,14 @@ async function installMacOSPackages() {
  * These RUNNER_XX env variables come from GitHub by default.
  * See https://docs.github.com/en/actions/reference/workflows-and-actions/variables#default-environment-variables
  *
- * If SONAR_HOST_URL is omitted, we assume sonarcloud.io
+ * If SONAR_HOST_URL is omitted, we assume SonarQube Cloud (region given by SONAR_REGION)
  */
 function getEnvVariables() {
-  const sonarHostUrl = process.env.SONAR_HOST_URL
-    ? process.env.SONAR_HOST_URL.replace(/\/$/, "")
-    : "https://sonarcloud.io";
-
   return {
     runnerOS: process.env.RUNNER_OS,
     runnerArch: process.env.RUNNER_ARCH,
     runnerTemp: process.env.RUNNER_TEMP,
-    sonarHostUrl,
+    sonarHostUrl: getSonarHostUrl(process.env),
   };
 }
 
