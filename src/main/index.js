@@ -76,6 +76,7 @@ function runSanityChecks(inputs) {
 
 async function run() {
   try {
+    core.info(`Action runtime: Node.js ${process.versions.node}`);
     const { args, projectBaseDir, scannerVersion, scannerBinariesUrl, scannerBinariesAuthHeader, skipSignatureVerification } =
       getInputs();
     const runnerEnv = getEnvVariables();
