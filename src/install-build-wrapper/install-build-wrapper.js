@@ -20,7 +20,7 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as fs from "fs";
 import * as path from "path";
-import { getBuildWrapperInfo, getRealPath } from "./utils";
+import { getBuildWrapperInfo, getRealPath, getSonarHostUrl } from "./utils";
 
 async function installMacOSPackages() {
   if (process.platform === "darwin") {
@@ -33,18 +33,14 @@ async function installMacOSPackages() {
  * These RUNNER_XX env variables come from GitHub by default.
  * See https://docs.github.com/en/actions/reference/workflows-and-actions/variables#default-environment-variables
  *
- * If SONAR_HOST_URL is omitted, we assume sonarcloud.io
+ * If SONAR_HOST_URL is omitted, we assume SonarQube Cloud (region given by SONAR_REGION)
  */
 function getEnvVariables() {
-  const sonarHostUrl = process.env.SONAR_HOST_URL
-    ? process.env.SONAR_HOST_URL.replace(/\/$/, "")
-    : "https://sonarcloud.io";
-
   return {
     runnerOS: process.env.RUNNER_OS,
     runnerArch: process.env.RUNNER_ARCH,
     runnerTemp: process.env.RUNNER_TEMP,
-    sonarHostUrl,
+    sonarHostUrl: getSonarHostUrl(process.env),
   };
 }
 
