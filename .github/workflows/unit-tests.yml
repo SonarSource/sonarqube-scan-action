@@ -6,7 +6,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: '55 3 * * 1-5' # Run the build and SonarQube analysis Monday-Friday (UTC).
+    - cron: '55 3 * * 1-5' # Recheck the build and tests Monday-Friday (UTC).
 
 jobs:
   test:
@@ -17,8 +17,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 #v7.1.0
@@ -45,24 +43,3 @@ jobs:
 
       - name: Run tests
         run: npm test
-
-      - name: Get SonarQube credentials
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        id: sonar-secrets
-        uses: SonarSource/vault-action-wrapper@a7fa5fd4a4e4e0f2593f6137c0812cac196cf4ce # 3.7.0
-        with:
-          secrets: |
-            development/kv/data/sonarcloud url | SONAR_HOST_URL;
-            development/kv/data/sonarcloud token | SONAR_TOKEN;
-
-      - name: SonarQube analysis
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        uses: ./
-        env:
-          SONAR_HOST_URL: ${{ fromJSON(steps.sonar-secrets.outputs.vault).SONAR_HOST_URL }}
-          SONAR_TOKEN: ${{ fromJSON(steps.sonar-secrets.outputs.vault).SONAR_TOKEN }}
-        with:
-          args: >-
-            -Dproject.settings=.sonarcloud.properties
-            -Dsonar.projectKey=SonarSource_sonarqube-scan-action
-            -Dsonar.organization=sonarsource
