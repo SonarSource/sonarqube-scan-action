@@ -19,7 +19,6 @@
   "devDependencies": {
     "@rollup/plugin-commonjs": "29.0.3",
     "@rollup/plugin-node-resolve": "16.0.3",
-    "mock-fs": "5.5.0",
     "rollup": "4.65.0"
   }
 }

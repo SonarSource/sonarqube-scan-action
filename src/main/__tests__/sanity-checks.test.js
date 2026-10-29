@@ -16,8 +16,10 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-import mockfs from "mock-fs";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, it, mock } from "node:test";
 import {
   checkGradleProject,
@@ -26,6 +28,15 @@ import {
   validateScannerVersion,
 } from "../sanity-checks.js";
 import { mockCore } from "./mocks.js";
+
+function createProject(t, files = []) {
+  const projectDir = mkdtempSync(join(tmpdir(), "sonarqube-scan-action-"));
+  t.after(() => rmSync(projectDir, { recursive: true, force: true }));
+  for (const file of files) {
+    writeFileSync(join(projectDir, file), "");
+  }
+  return projectDir;
+}
 
 describe("validateScannerVersion", () => {
   const expected =
@@ -102,93 +113,81 @@ describe("checkSonarToken", () => {
 });
 
 describe("checkMavenProject", () => {
-  it("calls core.warning when pom.xml exists", async () => {
-    mockfs({ "/test/project/": { "pom.xml": "" } });
+  it("calls core.warning when pom.xml exists", (t) => {
+    const projectDir = createProject(t, ["pom.xml"]);
     const warning = mock.fn();
 
-    checkMavenProject({ warning }, "/test/project");
+    checkMavenProject({ warning }, projectDir);
 
     assert.equal(warning.mock.calls.length, 1);
     assert.equal(
       warning.mock.calls[0].arguments[0],
       "Maven project detected. Sonar recommends running the 'org.sonarsource.scanner.maven:sonar-maven-plugin:sonar' goal during the build process instead of using this GitHub Action to get more accurate results."
     );
-
-    mockfs.restore();
   });
 
-  it("does not call core.warning when pom.xml does not exist", async () => {
-    mockfs({ "/test/project/": {} });
+  it("does not call core.warning when pom.xml does not exist", (t) => {
+    const projectDir = createProject(t);
     const warning = mock.fn();
 
-    checkMavenProject(mockCore({ warning }), "/test/project");
+    checkMavenProject(mockCore({ warning }), projectDir);
 
     assert.equal(warning.mock.calls.length, 0);
-
-    mockfs.restore();
   });
 
-  it("handles project base dir with trailing slash", async () => {
-    mockfs({ "/test/project/": { "pom.xml": "" } });
+  it("handles project base dir with trailing slash", (t) => {
+    const projectDir = createProject(t, ["pom.xml"]);
     const warning = mock.fn();
 
-    checkMavenProject(mockCore({ warning }), "/test/project/");
+    checkMavenProject(mockCore({ warning }), `${projectDir}/`);
     assert.equal(warning.mock.calls.length, 1);
-
-    mockfs.restore();
   });
 });
 
 describe("checkGradleProject", () => {
-  it("calls core.warning when build.gradle exists", async () => {
-    mockfs({ "/test/project/": { "build.gradle": "" } });
+  it("calls core.warning when build.gradle exists", (t) => {
+    const projectDir = createProject(t, ["build.gradle"]);
 
     const warning = mock.fn();
 
-    checkGradleProject(mockCore({ warning }), "/test/project");
+    checkGradleProject(mockCore({ warning }), projectDir);
 
     assert.equal(warning.mock.calls.length, 1);
     assert.equal(
       warning.mock.calls[0].arguments[0],
       "Gradle project detected. Sonar recommends using the SonarQube plugin for Gradle during the build process instead of using this GitHub Action to get more accurate results."
     );
-
-    mockfs.restore();
   });
 
-  it("calls core.warning when build.gradle.kts exists", async () => {
-    mockfs({ "/test/project/": { "build.gradle.kts": "" } });
+  it("calls core.warning when build.gradle.kts exists", (t) => {
+    const projectDir = createProject(t, ["build.gradle.kts"]);
 
     const warning = mock.fn();
 
-    checkGradleProject(mockCore({ warning }), "/test/project");
+    checkGradleProject(mockCore({ warning }), projectDir);
 
     assert.equal(warning.mock.calls.length, 1);
     assert.equal(
       warning.mock.calls[0].arguments[0],
       "Gradle project detected. Sonar recommends using the SonarQube plugin for Gradle during the build process instead of using this GitHub Action to get more accurate results."
     );
-
-    mockfs.restore();
   });
 
-  it("does not call core.warning when neither gradle file exists", async () => {
-    mockfs({ "/test/project/": {} });
+  it("does not call core.warning when neither gradle file exists", (t) => {
+    const projectDir = createProject(t);
 
     const warning = mock.fn();
 
-    checkGradleProject(mockCore({ warning }), "/test/project");
+    checkGradleProject(mockCore({ warning }), projectDir);
 
     assert.equal(warning.mock.calls.length, 0);
-
-    mockfs.restore();
   });
 
-  it("handles project base dir with trailing slash", async () => {
-    mockfs({ "/test/project/": { "build.gradle": "" } });
+  it("handles project base dir with trailing slash", (t) => {
+    const projectDir = createProject(t, ["build.gradle"]);
     const warning = mock.fn();
 
-    checkGradleProject(mockCore({ warning }), "/test/project/");
+    checkGradleProject(mockCore({ warning }), `${projectDir}/`);
 
     assert.equal(warning.mock.calls.length, 1);
   });
