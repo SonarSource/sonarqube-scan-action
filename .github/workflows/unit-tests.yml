@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '55 3 * * 1-5' # Recheck the build and tests Monday-Friday (UTC).
 
 jobs:
   test:
