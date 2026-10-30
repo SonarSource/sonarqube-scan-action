@@ -6,11 +6,6 @@
   </picture>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./images/SQ_Logo_Server_Cloud_Dark_Backgrounds.png">
-  <img alt="SonarQube Logo" src="./images/SQ_Logo_Server_Cloud_Light_Backgrounds.png">
-</picture>
-
 [![QA Main](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-main.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-main.yml) [![QA Install Build Wrapper](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-install-build-wrapper.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-install-build-wrapper.yml) [![QA Scripts](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-scripts.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-scripts.yml) [![QA Deprecated C and C++ Action](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-deprecated-c-cpp.yml/badge.svg)](https://github.com/SonarSource/sonarqube-scan-action/actions/workflows/qa-deprecated-c-cpp.yml)
 
 <!-- sonar-marketing:start -->
