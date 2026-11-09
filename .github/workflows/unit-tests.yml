@@ -9,7 +9,7 @@ on:
     - cron: '55 3 * * 1-5' # Recheck the build and tests Monday-Friday (UTC).
 
 jobs:
-  test:
+  unit-tests:
     strategy:
       matrix:
         node: [24, 26]
@@ -46,3 +46,20 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+  # Branch protection requires a check named "test": this gate keeps that name
+  # stable regardless of the Node.js versions in the matrix above.
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: [unit-tests]
+    if: always()
+    permissions: {}
+    steps:
+      - name: Check all jobs passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more required jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All checks passed."

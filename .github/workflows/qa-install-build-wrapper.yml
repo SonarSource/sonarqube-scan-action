@@ -16,13 +16,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest, macos-14]
+        os: [github-ubuntu-latest-s, github-windows-latest-s, macos-latest, macos-15]
         cache: [true, false]
         include:
           - arch: X64
           - os: macos-latest
             arch: ARM64
-          - os: macos-14
+          - os: macos-15
             arch: ARM64
     runs-on: ${{ matrix.os }}
     steps:
