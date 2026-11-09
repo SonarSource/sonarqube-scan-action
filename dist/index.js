@@ -4077,7 +4077,7 @@ async function run() {
     if (sonarcloudUrl) {
       warning(
         "The SONARCLOUD_URL environment variable is deprecated and will be removed in a future version. " +
-          "Regular users should not set it; use SONAR_REGION=us for the US region. " +
+          "Regular users should not set it; use SONAR_REGION=us or SONAR_REGION=au for the US or AU region. " +
           "For advanced needs, pass -Dsonar.scanner.sonarcloudUrl and -Dsonar.scanner.apiBaseUrl via the args input."
       );
     }

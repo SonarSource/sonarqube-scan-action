@@ -19,6 +19,12 @@
 import * as exec from "@actions/exec";
 import * as path from "path";
 
+const DEFAULT_SONARQUBE_CLOUD_URL = "https://sonarcloud.io";
+const SONARQUBE_CLOUD_URL_BY_REGION = new Map([
+  ["us", "https://sonarqube.us"],
+  ["au", "https://sonarqube.au"],
+]);
+
 /**
  * Resolve the server to download the build wrapper from.
  * SONAR_HOST_URL takes precedence, otherwise SonarQube Cloud is assumed,
@@ -28,9 +34,8 @@ export function getSonarHostUrl({ SONAR_HOST_URL, SONAR_REGION }) {
   if (SONAR_HOST_URL) {
     return SONAR_HOST_URL.replace(/\/$/, "");
   }
-  return SONAR_REGION?.trim().toLowerCase() === "us"
-    ? "https://sonarqube.us"
-    : "https://sonarcloud.io";
+  const region = SONAR_REGION?.trim().toLowerCase();
+  return SONARQUBE_CLOUD_URL_BY_REGION.get(region) ?? DEFAULT_SONARQUBE_CLOUD_URL;
 }
 
 /**

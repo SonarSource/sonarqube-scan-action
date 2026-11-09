@@ -107,6 +107,16 @@ describe("getSonarHostUrl", () => {
     assert.equal(getSonarHostUrl({ SONAR_REGION: " US " }), "https://sonarqube.us");
   });
 
+  it("uses SonarQube Cloud AU when SONAR_REGION is au", () => {
+    assert.equal(getSonarHostUrl({ SONAR_REGION: "au" }), "https://sonarqube.au");
+    assert.equal(getSonarHostUrl({ SONAR_REGION: " AU " }), "https://sonarqube.au");
+  });
+
+  it("falls back to SonarQube Cloud EU for an unknown SONAR_REGION", () => {
+    assert.equal(getSonarHostUrl({ SONAR_REGION: "mars" }), "https://sonarcloud.io");
+    assert.equal(getSonarHostUrl({ SONAR_REGION: "constructor" }), "https://sonarcloud.io");
+  });
+
   it("ignores empty SONAR_REGION", () => {
     assert.equal(getSonarHostUrl({ SONAR_REGION: "" }), "https://sonarcloud.io");
   });

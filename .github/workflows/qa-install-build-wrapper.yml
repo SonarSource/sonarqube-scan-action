@@ -75,16 +75,19 @@ jobs:
           ("$BINARY" || true) | grep "build-wrapper, version "
 
   region-test:
-    name: SONAR_REGION is honored
+    name: SONAR_REGION=${{ matrix.region }} is honored
     runs-on: github-ubuntu-latest-s
+    strategy:
+      matrix:
+        region: [us, au]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Run SonarQube C/C++ action with US region
+      - name: Run SonarQube C/C++ action with ${{ matrix.region }} region
         id: run-action
         uses: ./install-build-wrapper
         env:
-          SONAR_REGION: us
+          SONAR_REGION: ${{ matrix.region }}
 
       - name: build-wrapper-binary output is correct
         shell: bash
