@@ -96,4 +96,4 @@ async function run() {
   }
 }
 
-run();
+await run();

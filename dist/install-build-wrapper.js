@@ -259,5 +259,5 @@ async function run() {
   }
 }
 
-run();
+await run();
 //# sourceMappingURL=install-build-wrapper.js.map
