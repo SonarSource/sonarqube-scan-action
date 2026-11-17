@@ -1,4 +1,4 @@
-import { g as getExecOutput, a as addPath, i as info, s as setOutput, b as setFailed, e as exec, c as startGroup, d as endGroup } from './core-w6vZwEji.js';
+import { g as getExecOutput, c as coreExports, e as exec } from './exec-Qjo5jQ6G.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import 'os';
@@ -187,7 +187,7 @@ async function getRealPath(filePath, runnerOS) {
 
 async function installMacOSPackages() {
   if (process.platform === "darwin") {
-    info("Installing required packages for macOS");
+    coreExports.info("Installing required packages for macOS");
     await exec("brew", ["install", "coreutils"]);
   }
 }
@@ -214,9 +214,9 @@ async function downloadAndInstallBuildWrapper(downloadUrl, runnerEnv) {
     `build-wrapper-${runnerOS}-${runnerArch}.zip`
   );
 
-  startGroup(`Download ${downloadUrl}`);
+  coreExports.startGroup(`Download ${downloadUrl}`);
 
-  info(`Downloading '${downloadUrl}'`);
+  coreExports.info(`Downloading '${downloadUrl}'`);
 
   if (!fs.existsSync(runnerTemp)) {
     fs.mkdirSync(runnerTemp, { recursive: true });
@@ -224,10 +224,10 @@ async function downloadAndInstallBuildWrapper(downloadUrl, runnerEnv) {
 
   await exec("curl", ["-sSLo", tmpZipPath, downloadUrl]);
 
-  info("Decompressing");
+  coreExports.info("Decompressing");
   await exec("unzip", ["-o", "-d", runnerTemp, tmpZipPath]);
 
-  endGroup();
+  coreExports.endGroup();
 }
 
 async function run() {
@@ -245,17 +245,17 @@ async function run() {
       buildWrapperDir,
       envVariables.runnerOS
     );
-    addPath(buildWrapperBinDir);
-    info(`'${buildWrapperBinDir}' added to the path`);
+    coreExports.addPath(buildWrapperBinDir);
+    coreExports.info(`'${buildWrapperBinDir}' added to the path`);
 
     const buildWrapperBinPath = await getRealPath(
       buildWrapperBin,
       envVariables.runnerOS
     );
-    setOutput("build-wrapper-binary", buildWrapperBinPath);
-    info(`'build-wrapper-binary' output set to '${buildWrapperBinPath}'`);
+    coreExports.setOutput("build-wrapper-binary", buildWrapperBinPath);
+    coreExports.info(`'build-wrapper-binary' output set to '${buildWrapperBinPath}'`);
   } catch (error) {
-    setFailed(error.message);
+    coreExports.setFailed(error.message);
   }
 }
 
