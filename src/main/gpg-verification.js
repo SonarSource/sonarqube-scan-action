@@ -27,6 +27,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
+const SONARSOURCE_KEY_URL = "https://binaries.sonarsource.com/sonarsource-public.key";
 const DEFAULT_KEYSERVER = "hkps://keyserver.ubuntu.com";
 const FALLBACK_KEYSERVER = "hkps://keys.openpgp.org";
 // Linux/macOS sockaddr_un.sun_path limit is 108 bytes including the NUL terminator.
@@ -35,7 +36,10 @@ const MAX_GPG_SOCKET_PATH = 107;
 const LONGEST_GPG_SOCKET = "/S.gpg-agent.browser";
 
 /**
- * Verifies the GPG signature of a downloaded file
+ * Verifies the GPG signature of a downloaded file.
+ * The key published on binaries.sonarsource.com is tried first. Keyservers are only used when it
+ * cannot be downloaded or does not verify the signature, because it only contains the current
+ * signing subkey while older scanner versions were signed by subkeys that keyservers still provide.
  * @param {string} zipPath - Path to the downloaded ZIP file
  * @param {string} signaturePath - Path to the .asc signature file
  * @param {object} options - Verification options
@@ -59,6 +63,10 @@ export async function verifySignature(zipPath, signaturePath, options = {}) {
     gpgHome = setupGpgHome();
     core.debug(`Created temporary GPG home: ${gpgHome}`);
 
+    if (await verifyWithPublishedKey(zipPath, signaturePath, gpgHome, keyFingerprint)) {
+      return;
+    }
+
     await importSonarSourceKey(gpgHome, keyFingerprint, keyserver);
     core.info("✓ SonarSource public key imported successfully");
 
@@ -69,6 +77,37 @@ export async function verifySignature(zipPath, signaturePath, options = {}) {
       cleanupGpgHome(gpgHome);
     }
   }
+}
+
+/**
+ * Verifies the signature with the public key published by SonarSource
+ * @param {string} zipPath - Path to the downloaded ZIP file
+ * @param {string} signaturePath - Path to the .asc signature file
+ * @param {string} gpgHome - Path to GPG home directory
+ * @param {string} keyFingerprint - Expected primary key fingerprint
+ * @returns {Promise<boolean>} True if the signature is verified, false if keyservers should be tried
+ */
+async function verifyWithPublishedKey(zipPath, signaturePath, gpgHome, keyFingerprint) {
+  try {
+    core.info(`Importing SonarSource public key from ${SONARSOURCE_KEY_URL}...`);
+    await importKeyFromUrl(gpgHome, keyFingerprint, SONARSOURCE_KEY_URL);
+    core.info("✓ SonarSource public key imported successfully");
+  } catch (error) {
+    core.warning(`Failed to import key from ${SONARSOURCE_KEY_URL}: ${error.message}`);
+    return false;
+  }
+
+  try {
+    await runGpgVerify(zipPath, signaturePath, gpgHome);
+  } catch {
+    core.info(
+      `Signature not verified with the key from ${SONARSOURCE_KEY_URL}, it may have been made by a retired signing subkey. ` +
+      `Retrying with the key from keyservers...`
+    );
+    return false;
+  }
+  core.info("✓ GPG signature verification passed");
+  return true;
 }
 
 /**
@@ -235,6 +274,35 @@ async function validateKeyFingerprint(gpgCommand, gpgHomePath, keyData, keyFinge
 }
 
 /**
+ * Downloads a public key over HTTPS and imports it once its primary fingerprint is validated
+ * @param {string} gpgHome - Path to GPG home directory
+ * @param {string} keyFingerprint - Expected primary key fingerprint
+ * @param {string} keyUrl - URL of the public key
+ * @returns {Promise<void>}
+ * @throws {Error} If the key cannot be downloaded, does not match the fingerprint, or cannot be imported
+ */
+async function importKeyFromUrl(gpgHome, keyFingerprint, keyUrl) {
+  const gpgCommand = getGpgCommand();
+  const gpgHomePath = convertToUnixPath(gpgHome);
+  const keyData = await downloadKey(keyUrl);
+  await validateKeyFingerprint(gpgCommand, gpgHomePath, keyData, keyFingerprint);
+  await exec.exec(
+    gpgCommand,
+    [
+      "--homedir",
+      gpgHomePath,
+      "--batch",
+      "--import",
+      "-"
+    ],
+    {
+      silent: false,
+      input: keyData
+    }
+  );
+}
+
+/**
  * Attempts to import a public key from a specific keyserver
  * @param {string} gpgHome - Path to GPG home directory
  * @param {string} keyFingerprint - Public key fingerprint
@@ -242,9 +310,7 @@ async function validateKeyFingerprint(gpgCommand, gpgHomePath, keyData, keyFinge
  * @returns {Promise<void>}
  * @throws {Error} If key import fails
  */
-async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
-  const gpgCommand = getGpgCommand();
-  const gpgHomePath = convertToUnixPath(gpgHome);
+async function importKeyFromKeyserver(gpgHome, keyFingerprint, keyserver) {
   const proxyUrl = getProxyFromEnv();
 
   if (proxyUrl) {
@@ -257,25 +323,12 @@ async function tryImportKey(gpgHome, keyFingerprint, keyserver) {
     // Work around a GPG bug that can prevent connecting to keyservers through a proxy in some scenarios.
     // See https://lists.gnupg.org/pipermail/gnupg-devel/2026-September/036393.html
     const keyUrl = `${keyserver.replace(/^hkps:/, "https:").replace(/\/$/, "")}/pks/lookup?op=get&search=0x${keyFingerprint}`;
-    const keyData = await downloadKey(keyUrl);
-    await validateKeyFingerprint(gpgCommand, gpgHomePath, keyData, keyFingerprint);
-    await exec.exec(
-      gpgCommand,
-      [
-        "--homedir",
-        gpgHomePath,
-        "--batch",
-        "--import",
-        "-"
-      ],
-      {
-        silent: false,
-        input: keyData
-      }
-    );
+    await importKeyFromUrl(gpgHome, keyFingerprint, keyUrl);
     return;
   }
 
+  const gpgCommand = getGpgCommand();
+  const gpgHomePath = convertToUnixPath(gpgHome);
   await exec.exec(
     gpgCommand,
     [
@@ -306,7 +359,7 @@ export async function importSonarSourceKey(gpgHome, keyFingerprint, keyserver) {
 
   try {
     core.info(`Importing SonarSource public key from ${keyserver}...`);
-    await tryImportKey(gpgHome, keyFingerprint, keyserver);
+    await importKeyFromKeyserver(gpgHome, keyFingerprint, keyserver);
     core.info(`Successfully imported key from ${keyserver}`);
     return;
   } catch (error) {
@@ -318,7 +371,7 @@ export async function importSonarSourceKey(gpgHome, keyFingerprint, keyserver) {
 
   try {
     core.info(`Attempting fallback keyserver ${FALLBACK_KEYSERVER}...`);
-    await tryImportKey(gpgHome, keyFingerprint, FALLBACK_KEYSERVER);
+    await importKeyFromKeyserver(gpgHome, keyFingerprint, FALLBACK_KEYSERVER);
     core.info(`Successfully imported key from fallback keyserver ${FALLBACK_KEYSERVER}`);
   } catch (fallbackError) {
     throw new Error(
