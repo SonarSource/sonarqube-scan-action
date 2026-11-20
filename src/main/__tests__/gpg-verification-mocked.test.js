@@ -37,6 +37,54 @@ function createTrackedGpgHome(tempDirs) {
   return gpgHome;
 }
 
+const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
+const SONARSOURCE_KEY_URL = "https://binaries.sonarsource.com/sonarsource-public.key";
+
+/**
+ * Helper function to make the public key published on binaries.sonarsource.com unavailable,
+ * so that verification falls back to keyservers.
+ * @param {object} t - Test context
+ * @returns {Function} The mocked downloadTool function
+ */
+function mockPublishedKeyUnavailable(t) {
+  const downloadToolFn = mock.fn(async () => {
+    throw new Error("HTTP 503");
+  });
+  t.mock.module("@actions/tool-cache", {
+    namedExports: { downloadTool: downloadToolFn },
+  });
+  return downloadToolFn;
+}
+
+/**
+ * Helper function to mock a successful download of the public key published on binaries.sonarsource.com.
+ * @param {object} t - Test context
+ * @param {Array} tempDirs - Array to track temp directories for cleanup
+ * @returns {Function} The mocked downloadTool function
+ */
+function mockPublishedKeyDownload(t, tempDirs) {
+  const downloadToolFn = mock.fn(async () => {
+    const downloadDir = fs.mkdtempSync(path.join(os.tmpdir(), "key-"));
+    tempDirs.push(downloadDir);
+    const keyPath = path.join(downloadDir, "sonarsource-public.key");
+    fs.writeFileSync(keyPath, "published public key");
+    return keyPath;
+  });
+  t.mock.module("@actions/tool-cache", {
+    namedExports: { downloadTool: downloadToolFn },
+  });
+  return downloadToolFn;
+}
+
+/**
+ * Helper function to emit the colon-separated output of "gpg --import-options show-only" for a key.
+ * @param {object} execOptions - Options passed to exec, holding the stdout listener
+ * @param {string} fingerprint - Primary key fingerprint to report
+ */
+function emitKeyDetails(execOptions, fingerprint) {
+  execOptions.listeners.stdout(Buffer.from(`pub:-:4096:1:${fingerprint}::::::\nfpr:::::::::${fingerprint}:\n`));
+}
+
 describe("gpg-verification with mocked exec", () => {
   let tempDirs = [];
 
@@ -217,6 +265,8 @@ describe("gpg-verification with mocked exec", () => {
         },
       });
 
+      mockPublishedKeyUnavailable(t);
+
       const { verifySignature } = await import("../gpg-verification.js?test=full-verify-success");
 
       const zipPath = "/tmp/scanner.zip";
@@ -279,6 +329,8 @@ describe("gpg-verification with mocked exec", () => {
         },
       });
 
+      mockPublishedKeyUnavailable(t);
+
       const { verifySignature } = await import("../gpg-verification.js?test=bad-signature");
 
       const zipPath = "/tmp/scanner.zip";
@@ -321,6 +373,8 @@ describe("gpg-verification with mocked exec", () => {
         },
       });
 
+      mockPublishedKeyUnavailable(t);
+
       const { verifySignature } = await import("../gpg-verification.js?test=cleanup-on-fail");
 
       const zipPath = "/tmp/scanner.zip";
@@ -348,6 +402,8 @@ describe("gpg-verification with mocked exec", () => {
           exec: execFn,
         },
       });
+
+      mockPublishedKeyUnavailable(t);
 
       const { verifySignature } = await import("../gpg-verification.js?test=custom-options");
 
@@ -380,6 +436,8 @@ describe("gpg-verification with mocked exec", () => {
         },
       });
 
+      mockPublishedKeyUnavailable(t);
+
       const { verifySignature } = await import("../gpg-verification.js?test=default-options");
 
       const zipPath = "/tmp/scanner.zip";
@@ -391,6 +449,119 @@ describe("gpg-verification with mocked exec", () => {
       assert.ok(recvKeysCall, "Should have recv-keys call");
       assert.ok(recvKeysCall.args.includes("hkps://keyserver.ubuntu.com"));
       assert.ok(recvKeysCall.args.includes("679F1EE92B19609DE816FDE81DB198F93525EC1A"));
+    });
+
+    it("should verify with the published key without contacting keyservers", async (t) => {
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args, options });
+        if (args.includes("show-only")) {
+          emitKeyDetails(options, SONARSOURCE_KEY_FINGERPRINT);
+        }
+        return 0;
+      });
+
+      const downloadToolFn = mockPublishedKeyDownload(t, tempDirs);
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { verifySignature } = await import("../gpg-verification.js?test=published-key-success");
+
+      await verifySignature("/tmp/scanner.zip", "/tmp/scanner.zip.asc");
+
+      assert.equal(downloadToolFn.mock.calls.length, 1);
+      assert.equal(downloadToolFn.mock.calls[0].arguments[0], SONARSOURCE_KEY_URL);
+      assert.equal(execCalls.length, 4);
+      assert.deepEqual(execCalls[0].args, ["--version"]);
+      assert.ok(execCalls[1].args.includes("show-only"));
+      assert.ok(execCalls[2].args.includes("--import"));
+      assert.equal(execCalls[2].options.input, execCalls[1].options.input);
+      assert.ok(execCalls[3].args.includes("--verify"));
+      assert.ok(!execCalls.some(call => call.args.includes("--recv-keys")), "Should not contact keyservers");
+    });
+
+    it("should fall back to keyservers when the published key does not verify the signature", async (t) => {
+      const execCalls = [];
+      let verifyCount = 0;
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args });
+        if (args.includes("show-only")) {
+          emitKeyDetails(options, SONARSOURCE_KEY_FINGERPRINT);
+        }
+        if (args.includes("--verify") && ++verifyCount === 1) {
+          throw new Error("Can't check signature: No public key");
+        }
+        return 0;
+      });
+
+      mockPublishedKeyDownload(t, tempDirs);
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { verifySignature } = await import("../gpg-verification.js?test=published-key-retired-subkey");
+
+      await verifySignature("/tmp/scanner.zip", "/tmp/scanner.zip.asc");
+
+      const argsSequence = execCalls.map(call => call.args);
+      const firstVerifyIndex = argsSequence.findIndex(args => args.includes("--verify"));
+      const recvKeysIndex = argsSequence.findIndex(args => args.includes("--recv-keys"));
+      const lastVerifyIndex = argsSequence.findLastIndex(args => args.includes("--verify"));
+      assert.equal(verifyCount, 2);
+      assert.ok(firstVerifyIndex < recvKeysIndex && recvKeysIndex < lastVerifyIndex);
+    });
+
+    it("should fail when neither the published key nor the keyserver key verifies the signature", async (t) => {
+      const execFn = mock.fn(async (command, args, options) => {
+        if (args.includes("show-only")) {
+          emitKeyDetails(options, SONARSOURCE_KEY_FINGERPRINT);
+        }
+        if (args.includes("--verify")) {
+          throw new Error("BAD signature");
+        }
+        return 0;
+      });
+
+      mockPublishedKeyDownload(t, tempDirs);
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { verifySignature } = await import("../gpg-verification.js?test=published-key-bad-signature");
+
+      await assert.rejects(
+        () => verifySignature("/tmp/scanner.zip", "/tmp/scanner.zip.asc"),
+        { message: /GPG signature verification failed - file may be corrupted or tampered/ }
+      );
+      assert.equal(execFn.mock.calls.filter(call => call.arguments[1].includes("--verify")).length, 2);
+    });
+
+    it("should not import a published key with a different fingerprint", async (t) => {
+      const execCalls = [];
+      const execFn = mock.fn(async (command, args, options) => {
+        execCalls.push({ command, args });
+        if (args.includes("show-only")) {
+          emitKeyDetails(options, "DEADBEEF");
+        }
+        return 0;
+      });
+
+      mockPublishedKeyDownload(t, tempDirs);
+      t.mock.module("@actions/exec", {
+        namedExports: { exec: execFn },
+      });
+
+      const { verifySignature } = await import("../gpg-verification.js?test=published-key-wrong-fingerprint");
+
+      await verifySignature("/tmp/scanner.zip", "/tmp/scanner.zip.asc");
+
+      assert.ok(
+        !execCalls.some(call => call.args.includes("--import") && !call.args.includes("show-only")),
+        "Should not import the mismatching key"
+      );
+      assert.ok(execCalls.some(call => call.args.includes("--recv-keys")), "Should fall back to keyservers");
+      assert.equal(execCalls.filter(call => call.args.includes("--verify")).length, 1);
     });
   });
 
