@@ -25,6 +25,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
   getGpgCommand,
+  getMaxGpgSocketPathLength,
   setupGpgHome,
   cleanupGpgHome,
   convertToUnixPath,
@@ -101,8 +102,49 @@ async function withMockedEnv(envVars, testFn) {
  * @returns {string} The path to the created temporary directory
  */
 function createTempDir() {
-  // Use a short prefix so the gpg socket path stays within the 107-char Linux limit
+  // Use a short prefix so the gpg socket path stays within the platform limit
   return fs.mkdtempSync(path.join(os.tmpdir(), "r"));
+}
+
+/**
+ * Helper function to create a tracked temporary directory.
+ * @param {Array} tempDirs - Array to track temporary directories for cleanup
+ * @returns {string} The path to the created temporary directory
+ */
+function createTrackedTempDir(tempDirs) {
+  const tempDir = createTempDir();
+  tempDirs.push(tempDir);
+  return tempDir;
+}
+
+/**
+ * Builds a RUNNER_TEMP path for which setupGpgHome() produces a socket path of the requested length.
+ * @param {string} root - Existing directory used as the RUNNER_TEMP prefix
+ * @param {number} socketPathLength - Length of "<RUNNER_TEMP>/gpg-xxxxxxxx/S.gpg-agent.browser"
+ * @returns {string} The RUNNER_TEMP path
+ */
+function runnerTempForSocketPathLength(root, socketPathLength) {
+  const gpgHomeAndSocketSuffix = "/gpg-xxxxxxxx/S.gpg-agent.browser";
+  const padding = socketPathLength - gpgHomeAndSocketSuffix.length - root.length - 1;
+  return path.join(root, "x".repeat(padding));
+}
+
+/**
+ * Calls setupGpgHome() as if running on another platform, with the given RUNNER_TEMP.
+ * @param {string} platform - The platform to mock
+ * @param {string} runnerTemp - The RUNNER_TEMP value
+ * @param {Array} tempDirs - Array to track temporary directories for cleanup
+ * @returns {Promise<string>} The created GPG home directory
+ */
+async function setupGpgHomeOn(platform, runnerTemp, tempDirs) {
+  let gpgHome;
+  await withMockedEnv({ RUNNER_TEMP: runnerTemp }, async () => {
+    withMockedPlatform(platform, () => {
+      gpgHome = setupGpgHome();
+    });
+  });
+  tempDirs.push(gpgHome);
+  return gpgHome;
 }
 
 describe("gpg-verification", () => {
@@ -195,6 +237,43 @@ describe("gpg-verification", () => {
         fs.rmSync(testTemp, { recursive: true, force: true });
       }
     });
+  });
+
+  describe("getMaxGpgSocketPathLength", () => {
+    it("should allow 106 characters on Linux", () => {
+      assert.equal(getMaxGpgSocketPathLength("linux"), 106);
+    });
+
+    it("should allow 102 characters on macOS", () => {
+      assert.equal(getMaxGpgSocketPathLength("darwin"), 102);
+    });
+
+    it("should allow 102 characters on other Unix-like platforms", () => {
+      assert.equal(getMaxGpgSocketPathLength("freebsd"), 102);
+    });
+  });
+
+  describe("setupGpgHome socket path limit", () => {
+    for (const { platform, maxSocketPathLength } of [
+      { platform: "linux", maxSocketPathLength: 106 },
+      { platform: "darwin", maxSocketPathLength: 102 },
+    ]) {
+      it(`should keep RUNNER_TEMP on ${platform} when the socket path is ${maxSocketPathLength} characters`, async () => {
+        const runnerTemp = runnerTempForSocketPathLength(createTrackedTempDir(tempDirs), maxSocketPathLength);
+
+        const gpgHome = await setupGpgHomeOn(platform, runnerTemp, tempDirs);
+
+        assert.equal(path.dirname(gpgHome), runnerTemp);
+      });
+
+      it(`should fall back to os.tmpdir() on ${platform} when the socket path is ${maxSocketPathLength + 1} characters`, async () => {
+        const runnerTemp = runnerTempForSocketPathLength(createTrackedTempDir(tempDirs), maxSocketPathLength + 1);
+
+        const gpgHome = await setupGpgHomeOn(platform, runnerTemp, tempDirs);
+
+        assert.equal(path.dirname(gpgHome), os.tmpdir());
+      });
+    }
   });
 
   describe("cleanupGpgHome", () => {

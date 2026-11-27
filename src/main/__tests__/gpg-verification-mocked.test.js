@@ -23,7 +23,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
-import { getProxyFromEnv, setupGpgHome, } from "../gpg-verification.js";
+import { getMaxGpgSocketPathLength, getProxyFromEnv, setupGpgHome } from "../gpg-verification.js";
 
 /**
  * Helper function to create a temporary GPG home directory for testing.
@@ -703,7 +703,7 @@ describe("gpg-verification with mocked exec", () => {
     });
 
     it("should fall back to os.tmpdir() when RUNNER_TEMP path is too long for GPG sockets", () => {
-      // Customer's actual RUNNER_TEMP (93 chars) — pushes the dirmngr socket path over the 107-char Linux limit
+      // Customer's actual RUNNER_TEMP (93 chars), which pushes the socket path over the limit on every platform
       process.env.RUNNER_TEMP = "/codebuild/output/src2280/src/2bc4e189_61b5_4b91_abc6_9c5c06637b96/actions-runner/_work/_temp";
 
       const gpgHome = setupGpgHome();
@@ -729,7 +729,7 @@ describe("gpg-verification with mocked exec", () => {
       assert.throws(
         () => freshSetupGpgHome(),
         { message: `Cannot create a GPG home directory with a short enough path for GPG sockets. ` +
-                   `The longest socket path (gpgHome + "/S.gpg-agent.browser") must not exceed 107 characters. ` +
+                   `The longest socket path (gpgHome + "/S.gpg-agent.browser") must not exceed ${getMaxGpgSocketPathLength()} characters. ` +
                    `Consider setting RUNNER_TEMP to a shorter path, was "${longPath}".` }
       );
     });
