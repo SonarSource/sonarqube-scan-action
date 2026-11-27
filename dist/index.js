@@ -3289,9 +3289,13 @@ const SONARSOURCE_KEY_FINGERPRINT = "679F1EE92B19609DE816FDE81DB198F93525EC1A";
 const SONARSOURCE_KEY_URL = "https://binaries.sonarsource.com/sonarsource-public.key";
 const DEFAULT_KEYSERVER = "hkps://keyserver.ubuntu.com";
 const FALLBACK_KEYSERVER = "hkps://keys.openpgp.org";
-// Linux/macOS sockaddr_un.sun_path limit is 108 bytes including the NUL terminator.
+// sockaddr_un.sun_path is 108 bytes on Linux, and 104 bytes on macOS and the BSDs.
+const LINUX_SUN_PATH_SIZE = 108;
+const DEFAULT_SUN_PATH_SIZE = 104;
+// libassuan rejects socket paths when "strlen(path) + 1 >= sizeof(sun_path)", one character
+// earlier than the C buffer would allow, see _assuan_sock_set_sockaddr_un() in assuan-socket.c.
+const LIBASSUAN_RESERVED_CHARACTERS = 2;
 // S.gpg-agent.browser is the longest socket GPG creates directly under the home directory.
-const MAX_GPG_SOCKET_PATH = 107;
 const LONGEST_GPG_SOCKET = "/S.gpg-agent.browser";
 
 /**
@@ -3417,16 +3421,28 @@ function convertToUnixPath(windowsPath) {
 }
 
 /**
+ * Gets the longest Unix domain socket path that gpg-agent accepts on a platform
+ * @param {string} platform - Node.js platform name (default: the current platform)
+ * @returns {number} Maximum socket path length, in characters
+ */
+function getMaxGpgSocketPathLength(platform = process.platform) {
+  // Every non-Linux Unix-like platform gets the smaller BSD size, which is safe if the actual size is larger.
+  const sunPathSize = platform === "linux" ? LINUX_SUN_PATH_SIZE : DEFAULT_SUN_PATH_SIZE;
+  return sunPathSize - LIBASSUAN_RESERVED_CHARACTERS;
+}
+
+/**
  * Creates a temporary GPG home directory
  * @returns {string} Path to the temporary GPG home directory
  */
 function setupGpgHome() {
   const dirName = `gpg-${randomBytes(4).toString("hex")}`;
+  const maxSocketPathLength = getMaxGpgSocketPathLength();
 
   const runnertemp = process.env.RUNNER_TEMP;
   for (const base of [runnertemp, os$1.tmpdir()].filter(Boolean)) {
     const gpgHome = path$1.join(base, dirName);
-    if (process.platform === "win32" || (gpgHome + LONGEST_GPG_SOCKET).length <= MAX_GPG_SOCKET_PATH) {
+    if (process.platform === "win32" || (gpgHome + LONGEST_GPG_SOCKET).length <= maxSocketPathLength) {
       fs$1.mkdirSync(gpgHome, { recursive: true, mode: 0o700 });
       return gpgHome;
     }
@@ -3434,7 +3450,7 @@ function setupGpgHome() {
 
   throw new Error(
     `Cannot create a GPG home directory with a short enough path for GPG sockets. ` +
-    `The longest socket path (gpgHome + "${LONGEST_GPG_SOCKET}") must not exceed ${MAX_GPG_SOCKET_PATH} characters. ` +
+    `The longest socket path (gpgHome + "${LONGEST_GPG_SOCKET}") must not exceed ${maxSocketPathLength} characters. ` +
     `Consider setting RUNNER_TEMP to a shorter path, was "${runnertemp || '<empty>'}".`
   );
 }
